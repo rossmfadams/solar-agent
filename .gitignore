@@ -56,3 +56,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Claude
+.claude/
+.agents/
+skills-lock.json
+CLAUDE.md
+docs/agents/
