@@ -38,7 +38,17 @@ async def resolve_parcel(state: dict) -> dict:
             "parcel_fallback": False,
         }
 
-    pool = await get_pool()
+    try:
+        pool = await get_pool()
+    except RuntimeError:
+        return {
+            "parcel_id": None,
+            "county": None,
+            "muni": None,
+            "parcel_geojson": None,
+            "parcel_fallback": False,
+        }
+
     async with pool.acquire() as conn:
         # ST_MakePoint takes (longitude, latitude)
         row = await conn.fetchrow(_POINT_QUERY, lng, lat)
