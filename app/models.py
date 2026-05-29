@@ -39,6 +39,11 @@ class Interconnection(BaseModel):
     transmission_band: str
     nearest_substation_miles: float
     nearest_substations: list[SubstationProximity]
+    # Interconnection Capacity (proxy) — total MW queued in the NYISO
+    # interconnection queue within 10 miles of nearby substations.
+    # Optional: populated only when the NYISO queue table has been loaded.
+    interconnection_capacity_proxy_mw: float | None = None
+    queue_match_rate: float | None = None
     citations: list[Citation]
 
 
@@ -66,6 +71,33 @@ class ScreenRequest(BaseModel):
 def _build_interconnection(state: dict) -> Interconnection | str:
     if not state.get("grid_data_available"):
         return UNABLE_TO_VERIFY
+
+    citations: list[Citation] = [
+        Citation(
+            source="HIFLD",
+            reference="Electric Power Transmission Lines; Electric Substations",
+            retrieval_date=date.today().isoformat(),
+        )
+    ]
+
+    proxy_mw: float | None = None
+    match_rate: float | None = None
+
+    if state.get("hosting_capacity_available"):
+        proxy_mw = state.get("interconnection_capacity_proxy_mw")
+        match_rate = state.get("queue_match_rate")
+        snapshot = state.get("nyiso_snapshot_date") or "unknown"
+        retrieval = state.get("nyiso_retrieval_date") or date.today().isoformat()
+        # match_rate embedded in reference so it's visible in the Citation
+        pct = f"{round((match_rate or 0) * 100):.0f}%" if match_rate is not None else "n/a"
+        citations.append(
+            Citation(
+                source="NYISO Interconnection Queue",
+                reference=f"Queue snapshot {snapshot}; {pct} of MW geolocated by substation name",
+                retrieval_date=retrieval,
+            )
+        )
+
     return Interconnection(
         nearest_transmission_miles=state["nearest_transmission_miles"],
         transmission_band=state["transmission_band"],
@@ -73,13 +105,9 @@ def _build_interconnection(state: dict) -> Interconnection | str:
         nearest_substations=[
             SubstationProximity(**s) for s in state["nearest_substations"]
         ],
-        citations=[
-            Citation(
-                source="HIFLD",
-                reference="Electric Power Transmission Lines; Electric Substations",
-                retrieval_date=date.today().isoformat(),
-            )
-        ],
+        interconnection_capacity_proxy_mw=proxy_mw,
+        queue_match_rate=match_rate,
+        citations=citations,
     )
 
 

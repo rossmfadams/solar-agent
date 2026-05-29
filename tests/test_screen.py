@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -34,6 +35,11 @@ def _mock_graph(state_overrides: dict):
         "nearest_substation_miles": None,
         "nearest_substations": [],
         "grid_data_available": False,
+        "interconnection_capacity_proxy_mw": None,
+        "queue_match_rate": None,
+        "nyiso_snapshot_date": None,
+        "nyiso_retrieval_date": None,
+        "hosting_capacity_available": False,
     }
     return {**base, **state_overrides}
 
@@ -181,3 +187,77 @@ def test_screen_interconnection_unable_to_verify_when_grid_data_unavailable():
     assert resp.status_code == 200
     data = resp.json()
     assert data["interconnection"] == "unable to verify"
+
+
+def test_screen_interconnection_includes_nyiso_citation_when_hosting_capacity_available():
+    """Interconnection section carries proxy MW + a NYISO Citation when queue loaded."""
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "nearest_transmission_miles": 0.8,
+            "transmission_band": "strong positive",
+            "nearest_substation_miles": 1.5,
+            "nearest_substations": [
+                {"id": 1, "name": "Albany Sub A", "miles": 1.5},
+                {"id": 2, "name": "Albany Sub B", "miles": 2.3},
+                {"id": 3, "name": "Albany Sub C", "miles": 4.1},
+            ],
+            "grid_data_available": True,
+            "interconnection_capacity_proxy_mw": 950,
+            "queue_match_rate": 0.87,
+            "nyiso_snapshot_date": "2025-01-15",
+            "nyiso_retrieval_date": "2025-05-01",
+            "hosting_capacity_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post(
+            "/screen", json={"address": "1 Empire State Plaza, Albany, NY"}
+        )
+
+    assert resp.status_code == 200
+    ic = resp.json()["interconnection"]
+    assert ic != "unable to verify"
+    assert ic["interconnection_capacity_proxy_mw"] == 950
+    assert ic["queue_match_rate"] == pytest.approx(0.87, rel=1e-3)
+    sources = [c["source"] for c in ic["citations"]]
+    assert "HIFLD" in sources
+    assert "NYISO Interconnection Queue" in sources
+    nyiso_citation = next(c for c in ic["citations"] if c["source"] == "NYISO Interconnection Queue")
+    assert "2025-01-15" in nyiso_citation["reference"]
+    assert nyiso_citation["retrieval_date"] == "2025-05-01"
+
+
+def test_screen_interconnection_no_nyiso_citation_when_hosting_capacity_unavailable():
+    """When NYISO queue not loaded, Interconnection section has only the HIFLD citation."""
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "nearest_transmission_miles": 0.8,
+            "transmission_band": "strong positive",
+            "nearest_substation_miles": 1.5,
+            "nearest_substations": [
+                {"id": 1, "name": "Albany Sub A", "miles": 1.5},
+            ],
+            "grid_data_available": True,
+            "hosting_capacity_available": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post(
+            "/screen", json={"address": "1 Empire State Plaza, Albany, NY"}
+        )
+
+    assert resp.status_code == 200
+    ic = resp.json()["interconnection"]
+    assert ic != "unable to verify"
+    assert ic["interconnection_capacity_proxy_mw"] is None
+    sources = [c["source"] for c in ic["citations"]]
+    assert "NYISO Interconnection Queue" not in sources
+    assert "HIFLD" in sources
