@@ -52,9 +52,15 @@ async def check_grid_proximity(state: dict) -> dict:
         async with pool.acquire() as conn:
             if parcel_geojson is not None:
                 import json
+                # asyncpg returns json columns as raw strings; dicts must be serialised
+                geojson_str = (
+                    parcel_geojson
+                    if isinstance(parcel_geojson, str)
+                    else json.dumps(parcel_geojson)
+                )
                 point_wkt = await conn.fetchval(
                     "SELECT ST_AsText(ST_Centroid(ST_GeomFromGeoJSON($1)))",
-                    json.dumps(parcel_geojson),
+                    geojson_str,
                 )
             else:
                 point_wkt = await conn.fetchval(
