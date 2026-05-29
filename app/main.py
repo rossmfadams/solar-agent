@@ -39,6 +39,11 @@ async def screen(request: ScreenRequest):
         "muni": None,
         "parcel_geojson": None,
         "parcel_fallback": False,
+        "interconnection_capacity_proxy_mw": None,
+        "queue_match_rate": None,
+        "nyiso_snapshot_date": None,
+        "nyiso_retrieval_date": None,
+        "hosting_capacity_available": False,
     }
 
     final_state = await compiled_graph.ainvoke(initial_state)

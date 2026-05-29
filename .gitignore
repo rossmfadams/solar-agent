@@ -45,6 +45,8 @@ data/
 *.tif
 *.tiff
 *.geotiff
+*.xlsx
+*.csv
 
 # Notebooks
 .ipynb_checkpoints/
