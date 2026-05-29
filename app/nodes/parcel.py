@@ -1,7 +1,7 @@
 from app.db import get_pool
 
 _POINT_QUERY = """
-SELECT print_key, county_nam AS county, muni_name AS muni,
+SELECT print_key, county_name AS county, muni_name AS muni,
        ST_AsGeoJSON(geom)::json AS geojson
 FROM parcels
 WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326))
@@ -9,7 +9,7 @@ LIMIT 1
 """
 
 _BUFFER_QUERY = """
-SELECT print_key, county_nam AS county, muni_name AS muni,
+SELECT print_key, county_name AS county, muni_name AS muni,
        ST_AsGeoJSON(geom)::json AS geojson
 FROM parcels
 WHERE ST_DWithin(

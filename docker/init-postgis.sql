@@ -6,7 +6,7 @@ SELECT PostGIS_Version();
 CREATE TABLE IF NOT EXISTS parcels (
     id         BIGSERIAL PRIMARY KEY,
     print_key  TEXT,
-    county_nam TEXT,
+    county_name TEXT,
     muni_name  TEXT,
     geom       GEOMETRY(Geometry, 4326)
 );
