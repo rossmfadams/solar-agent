@@ -3,12 +3,16 @@ import json
 from app.db import get_pool
 
 # Compute mean slope (percent rise) over all DEM tiles that intersect the parcel.
-# ST_Union merges overlapping tiles; ST_Slope converts elevation to percent slope;
-# ST_Clip clips the result to the parcel boundary; ST_SummaryStats extracts the mean.
+# The DEM is stored in EPSG:4326 (degrees). ST_Slope requires projected coordinates
+# for correct meter-based gradient calculation, so we reproject to UTM Zone 18N
+# (EPSG:32618) which covers New York State, before calling ST_Slope.
 _SLOPE_QUERY = """
 SELECT (ST_SummaryStats(
     ST_Slope(
-        ST_Clip(ST_Union(d.rast), $1::geometry),
+        ST_Clip(
+            ST_Transform(ST_Union(d.rast), 32618),
+            ST_Transform($1::geometry, 32618)
+        ),
         1,
         '32BF',
         'PERCENT'
