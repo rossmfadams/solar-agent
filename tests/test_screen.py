@@ -40,6 +40,16 @@ def _mock_graph(state_overrides: dict):
         "nyiso_snapshot_date": None,
         "nyiso_retrieval_date": None,
         "hosting_capacity_available": False,
+        # Environmental
+        "flood_zone": None,
+        "nwi_overlap": None,
+        "nwi_wetland_type": None,
+        "padus_overlap": None,
+        "padus_unit_name": None,
+        "environmental_data_available": False,
+        # Terrain
+        "mean_slope_percent": None,
+        "terrain_data_available": False,
     }
     return {**base, **state_overrides}
 
@@ -261,3 +271,219 @@ def test_screen_interconnection_no_nyiso_citation_when_hosting_capacity_unavaila
     sources = [c["source"] for c in ic["citations"]]
     assert "NYISO Interconnection Queue" not in sources
     assert "HIFLD" in sources
+
+
+# ---------------------------------------------------------------------------
+# Environmental section
+# ---------------------------------------------------------------------------
+
+def test_screen_environmental_populated_when_data_available():
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "flood_zone": "AE/AH/AO/VE",
+            "nwi_overlap": False,
+            "nwi_wetland_type": None,
+            "padus_overlap": False,
+            "padus_unit_name": None,
+            "environmental_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    env = resp.json()["environmental"]
+    assert env != "unable to verify"
+    assert env["flood_zone"] == "AE/AH/AO/VE"
+    assert env["nwi_overlap"] is False
+    assert env["padus_overlap"] is False
+    sources = [c["source"] for c in env["citations"]]
+    assert "FEMA National Flood Hazard Layer" in sources
+    assert "USFWS National Wetlands Inventory" in sources
+    assert "USGS Protected Areas Database (PAD-US)" in sources
+
+
+def test_screen_environmental_unable_to_verify_when_data_unavailable():
+    final = _mock_graph(
+        {
+            "address": "Remote Site, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -75.0,
+            "environmental_data_available": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Remote Site, NY"})
+
+    assert resp.status_code == 200
+    assert resp.json()["environmental"] == "unable to verify"
+
+
+# ---------------------------------------------------------------------------
+# Terrain section
+# ---------------------------------------------------------------------------
+
+def test_screen_terrain_populated_when_data_available():
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "mean_slope_percent": 4.5,
+            "terrain_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    terrain = resp.json()["terrain"]
+    assert terrain != "unable to verify"
+    assert terrain["mean_slope_percent"] == pytest.approx(4.5, rel=1e-3)
+    assert len(terrain["citations"]) == 1
+    assert "3DEP" in terrain["citations"][0]["source"]
+
+
+def test_screen_terrain_unable_to_verify_when_data_unavailable():
+    final = _mock_graph(
+        {
+            "address": "Remote Site, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -75.0,
+            "terrain_data_available": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Remote Site, NY"})
+
+    assert resp.status_code == 200
+    assert resp.json()["terrain"] == "unable to verify"
+
+
+# ---------------------------------------------------------------------------
+# Hard disqualifiers
+# ---------------------------------------------------------------------------
+
+def test_screen_hard_disqualifiers_empty_list_when_no_overlaps():
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "flood_zone": "none",
+            "nwi_overlap": False,
+            "nwi_wetland_type": None,
+            "padus_overlap": False,
+            "padus_unit_name": None,
+            "environmental_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    hd = resp.json()["hard_disqualifiers"]
+    assert hd == []
+
+
+def test_screen_hard_disqualifiers_nwi_overlap_triggers_entry():
+    final = _mock_graph(
+        {
+            "address": "Wetland Parcel, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "flood_zone": "none",
+            "nwi_overlap": True,
+            "nwi_wetland_type": "Freshwater Emergent Wetland",
+            "padus_overlap": False,
+            "padus_unit_name": None,
+            "environmental_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Wetland Parcel, NY"})
+
+    assert resp.status_code == 200
+    hd = resp.json()["hard_disqualifiers"]
+    assert len(hd) == 1
+    assert "NWI wetland" in hd[0]["constraint"]
+    assert "Freshwater Emergent Wetland" in hd[0]["constraint"]
+    assert hd[0]["citation"]["source"] == "USFWS National Wetlands Inventory"
+
+
+def test_screen_hard_disqualifiers_padus_overlap_triggers_entry():
+    final = _mock_graph(
+        {
+            "address": "Protected Land, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -74.0,
+            "flood_zone": "none",
+            "nwi_overlap": False,
+            "nwi_wetland_type": None,
+            "padus_overlap": True,
+            "padus_unit_name": "Adirondack Park",
+            "environmental_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Protected Land, NY"})
+
+    assert resp.status_code == 200
+    hd = resp.json()["hard_disqualifiers"]
+    assert len(hd) == 1
+    assert "PAD-US" in hd[0]["constraint"]
+    assert "Adirondack Park" in hd[0]["constraint"]
+    assert hd[0]["citation"]["source"] == "USGS Protected Areas Database (PAD-US)"
+
+
+def test_screen_hard_disqualifiers_both_nwi_and_padus_overlap():
+    final = _mock_graph(
+        {
+            "address": "Double Disqualified, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -74.0,
+            "flood_zone": "none",
+            "nwi_overlap": True,
+            "nwi_wetland_type": "Freshwater Forested/Shrub Wetland",
+            "padus_overlap": True,
+            "padus_unit_name": "Adirondack Park",
+            "environmental_data_available": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Double Disqualified, NY"})
+
+    assert resp.status_code == 200
+    hd = resp.json()["hard_disqualifiers"]
+    assert len(hd) == 2
+    sources = [entry["citation"]["source"] for entry in hd]
+    assert "USFWS National Wetlands Inventory" in sources
+    assert "USGS Protected Areas Database (PAD-US)" in sources
+
+
+def test_screen_hard_disqualifiers_unable_to_verify_when_env_data_unavailable():
+    final = _mock_graph(
+        {
+            "address": "Remote Site, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -75.0,
+            "environmental_data_available": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Remote Site, NY"})
+
+    assert resp.status_code == 200
+    assert resp.json()["hard_disqualifiers"] == "unable to verify"
