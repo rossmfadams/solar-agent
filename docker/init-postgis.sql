@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_raster;
 -- Confirm PostGIS is available; startup fails if this errors
 SELECT PostGIS_Version();
 

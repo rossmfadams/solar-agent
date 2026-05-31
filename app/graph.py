@@ -6,6 +6,8 @@ from app.nodes.geocode import geocode_address
 from app.nodes.parcel import resolve_parcel
 from app.nodes.grid import check_grid_proximity
 from app.nodes.hosting_capacity import check_hosting_capacity
+from app.nodes.environmental import check_environmental_constraints
+from app.nodes.terrain import check_terrain
 
 
 class HeliosState(TypedDict):
@@ -19,6 +21,7 @@ class HeliosState(TypedDict):
     muni: str | None
     parcel_geojson: dict | None
     parcel_fallback: bool
+    # Grid / interconnection
     nearest_transmission_miles: float | None
     transmission_band: str | None
     nearest_substation_miles: float | None
@@ -29,6 +32,16 @@ class HeliosState(TypedDict):
     nyiso_snapshot_date: str | None
     nyiso_retrieval_date: str | None
     hosting_capacity_available: bool
+    # Environmental constraints
+    flood_zone: str | None
+    nwi_overlap: bool | None
+    nwi_wetland_type: str | None
+    padus_overlap: bool | None
+    padus_unit_name: str | None
+    environmental_data_available: bool
+    # Terrain
+    mean_slope_percent: float | None
+    terrain_data_available: bool
 
 
 def _build_graph():
@@ -37,11 +50,19 @@ def _build_graph():
     builder.add_node("resolve_parcel", resolve_parcel)
     builder.add_node("check_grid_proximity", check_grid_proximity)
     builder.add_node("check_hosting_capacity", check_hosting_capacity)
+    builder.add_node("check_environmental_constraints", check_environmental_constraints)
+    builder.add_node("check_terrain", check_terrain)
     builder.set_entry_point("geocode_address")
     builder.add_edge("geocode_address", "resolve_parcel")
+    # Fan out from resolve_parcel: grid, environmental, and terrain run in parallel
     builder.add_edge("resolve_parcel", "check_grid_proximity")
+    builder.add_edge("resolve_parcel", "check_environmental_constraints")
+    builder.add_edge("resolve_parcel", "check_terrain")
+    # Grid branch: hosting capacity depends on grid proximity result
     builder.add_edge("check_grid_proximity", "check_hosting_capacity")
     builder.add_edge("check_hosting_capacity", END)
+    builder.add_edge("check_environmental_constraints", END)
+    builder.add_edge("check_terrain", END)
     return builder.compile()
 
 
