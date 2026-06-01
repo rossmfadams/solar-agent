@@ -63,6 +63,8 @@ def _mock_graph(state_overrides: dict):
         "ordinance_moratorium_section": None,
         "ordinance_moratorium_quote": None,
         "ordinance_retrieval_date": None,
+        # Synthesis
+        "ordinance_deduction": None,
     }
     return {**base, **state_overrides}
 
@@ -584,3 +586,146 @@ def test_screen_ordinance_summary_unable_to_verify_when_searched_not_found():
 
     assert resp.status_code == 200
     assert resp.json()["ordinance_summary"] == "unable to verify"
+
+
+# ---------------------------------------------------------------------------
+# Viability section
+# ---------------------------------------------------------------------------
+
+def test_screen_viability_present_in_response():
+    """viability is a top-level object in every response."""
+    final = _mock_graph(
+        {
+            "address": "123 Main St, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "123 Main St, Albany, NY"})
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "viability" in data
+    v = data["viability"]
+    assert "score" in v
+    assert "stars" in v
+    assert "label" in v
+    assert "hard_disqualified" in v
+
+
+def test_screen_viability_scored_when_signals_exist():
+    """viability.score is deterministic when known signals are provided."""
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            # Transmission 7 mi → -20, queue 800 MW → -10, flood AE → -20, slope 8% → -8
+            "grid_data_available": True,
+            "nearest_transmission_miles": 7.0,
+            "transmission_band": "moderate negative",
+            "nearest_substation_miles": 3.0,
+            "nearest_substations": [{"id": 1, "name": "Sub A", "miles": 3.0}],
+            "hosting_capacity_available": True,
+            "interconnection_capacity_proxy_mw": 800.0,
+            "queue_match_rate": 0.8,
+            "nyiso_snapshot_date": "2025-01-15",
+            "nyiso_retrieval_date": "2026-06-01",
+            "environmental_data_available": True,
+            "flood_zone": "AE",
+            "nwi_overlap": False,
+            "padus_overlap": False,
+            "terrain_data_available": True,
+            "mean_slope_percent": 8.0,
+            "ordinance_found": False,
+            "ordinance_deduction": None,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    v = resp.json()["viability"]
+    # 100 - 20 - 10 - 20 - 8 = 42
+    assert v["score"] == 42
+    assert v["stars"] == 2
+    assert v["label"] == "Low"
+    assert v["hard_disqualified"] is False
+
+
+def test_screen_top_3_constraints_populated_when_signals_exist():
+    """top_3_constraints is a list (not 'unable to verify') when any signal is available."""
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "grid_data_available": True,
+            "nearest_transmission_miles": 7.0,
+            "transmission_band": "moderate negative",
+            "nearest_substation_miles": 3.0,
+            "nearest_substations": [{"id": 1, "name": "Sub A", "miles": 3.0}],
+            "hosting_capacity_available": False,
+            "environmental_data_available": True,
+            "flood_zone": "AE",
+            "nwi_overlap": False,
+            "padus_overlap": False,
+            "terrain_data_available": False,
+            "ordinance_found": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    top3 = resp.json()["top_3_constraints"]
+    assert isinstance(top3, list)
+    # Both transmission (7mi → -20) and flood (AE → -20) should appear
+    labels = [c["constraint"] for c in top3]
+    assert any("Transmission" in lbl or "transmission" in lbl for lbl in labels)
+    assert any("Flood" in lbl or "flood" in lbl or "AE" in lbl for lbl in labels)
+
+
+def test_screen_moratorium_yields_hard_disqualified_viability():
+    """An active moratorium drives viability.score == 0 and hard_disqualified == True."""
+    final = _mock_graph(
+        {
+            "address": "Moratorium Town, NY",
+            "resolved_lat": 43.0,
+            "resolved_lng": -74.0,
+            "ordinance_available": True,
+            "ordinance_found": True,
+            "ordinance_source": "eCode360",
+            "ordinance_section": "Local Law No. 3, § 1",
+            "ordinance_moratorium_active": True,
+            "ordinance_moratorium_section": "Local Law No. 3, § 1",
+            "ordinance_moratorium_quote": "No solar applications shall be accepted.",
+            "ordinance_retrieval_date": "2026-06-01",
+            "ordinance_deduction": 0,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Moratorium Town, NY"})
+
+    assert resp.status_code == 200
+    data = resp.json()
+    v = data["viability"]
+    assert v["score"] == 0
+    assert v["stars"] == 0
+    assert v["label"] == "Hard Disqualified"
+    assert v["hard_disqualified"] is True
+
+    # The moratorium should also appear in hard_disqualifiers
+    hd = data["hard_disqualifiers"]
+    assert isinstance(hd, list)
+    assert any("moratorium" in entry["constraint"].lower() for entry in hd)
+
+    # And in top_3_constraints
+    top3 = data["top_3_constraints"]
+    assert isinstance(top3, list)
+    assert any("moratorium" in c["constraint"].lower() for c in top3)

@@ -9,6 +9,7 @@ from app.nodes.hosting_capacity import check_hosting_capacity
 from app.nodes.environmental import check_environmental_constraints
 from app.nodes.terrain import check_terrain
 from app.nodes.ordinance import research_local_ordinance
+from app.nodes.synthesize import synthesize_memo
 
 
 class HeliosState(TypedDict):
@@ -57,6 +58,8 @@ class HeliosState(TypedDict):
     ordinance_moratorium_section: str | None
     ordinance_moratorium_quote: str | None
     ordinance_retrieval_date: str | None
+    # Synthesis
+    ordinance_deduction: int | None
 
 
 def _build_graph():
@@ -68,6 +71,7 @@ def _build_graph():
     builder.add_node("check_environmental_constraints", check_environmental_constraints)
     builder.add_node("check_terrain", check_terrain)
     builder.add_node("research_local_ordinance", research_local_ordinance)
+    builder.add_node("synthesize_memo", synthesize_memo)
     builder.set_entry_point("geocode_address")
     builder.add_edge("geocode_address", "resolve_parcel")
     # Fan out from resolve_parcel: grid, environmental, terrain, and ordinance
@@ -81,10 +85,13 @@ def _build_graph():
     builder.add_edge("resolve_parcel", "research_local_ordinance")
     # Grid branch: hosting capacity depends on grid proximity result
     builder.add_edge("check_grid_proximity", "check_hosting_capacity")
-    builder.add_edge("check_hosting_capacity", END)
-    builder.add_edge("check_environmental_constraints", END)
-    builder.add_edge("check_terrain", END)
-    builder.add_edge("research_local_ordinance", END)
+    # All four parallel branches fan in to synthesize_memo (LangGraph's superstep
+    # barrier ensures it only runs after all branches complete), then to END.
+    builder.add_edge("check_hosting_capacity", "synthesize_memo")
+    builder.add_edge("check_environmental_constraints", "synthesize_memo")
+    builder.add_edge("check_terrain", "synthesize_memo")
+    builder.add_edge("research_local_ordinance", "synthesize_memo")
+    builder.add_edge("synthesize_memo", END)
     return builder.compile()
 
 
