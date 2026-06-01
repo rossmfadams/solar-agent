@@ -82,8 +82,30 @@ class OrdinanceSummary(BaseModel):
     citation: Citation
 
 
+class ScoreComponent(BaseModel):
+    dimension: str
+    raw: Any
+    deduction: int
+    note: str | None = None
+
+
+class Constraint(BaseModel):
+    constraint: str
+    impact: int
+    citation: Citation
+
+
+class Viability(BaseModel):
+    score: int
+    stars: int
+    label: str
+    hard_disqualified: bool
+    breakdown: list[ScoreComponent]
+
+
 class Memo(BaseModel):
     header: MemoHeader
+    viability: Any = UNABLE_TO_VERIFY
     hard_disqualifiers: Any = UNABLE_TO_VERIFY
     top_3_constraints: Any = UNABLE_TO_VERIFY
     interconnection: Any = UNABLE_TO_VERIFY
@@ -195,35 +217,116 @@ def _build_terrain(state: dict) -> Terrain | str:
     )
 
 
+# ---------------------------------------------------------------------------
+# Scoring helpers — pure functions, no I/O, fully unit-testable
+# ---------------------------------------------------------------------------
+
+def _transmission_deduction(miles: float) -> int:
+    if miles <= 1:
+        return 0
+    if miles <= 5:
+        return -10
+    if miles <= 10:
+        return -20
+    return -35
+
+
+def _queue_deduction(mw: float | None) -> int:
+    if mw is None:
+        return 0
+    if mw < 500:
+        return 0
+    if mw <= 1500:
+        return -10
+    return -20
+
+
+def _flood_deduction(zone: str | None) -> int:
+    if not zone:
+        return 0
+    z = zone.upper()
+    if any(code in z for code in ("AE", "AH", "AO", "VE")):
+        return -20
+    if "X (SHADED)" in z:
+        return -10
+    return 0
+
+
+def _slope_deduction(pct: float | None) -> int:
+    if pct is None:
+        return 0
+    if pct <= 5:
+        return 0
+    if pct <= 15:
+        return -8
+    return -15
+
+
+def _stars_and_label(score: int) -> tuple[int, str]:
+    if score == 0:
+        return 0, "Hard Disqualified"
+    if score <= 25:
+        return 1, "Very Low"
+    if score <= 50:
+        return 2, "Low"
+    if score <= 70:
+        return 3, "Moderate"
+    if score <= 85:
+        return 4, "Good"
+    return 5, "Strong"
+
+
+# ---------------------------------------------------------------------------
+# Hard disqualifiers — extended to include active moratorium
+# ---------------------------------------------------------------------------
+
 def _build_hard_disqualifiers(state: dict) -> list[HardDisqualifier] | str:
-    if not state.get("environmental_data_available"):
+    env_available = bool(state.get("environmental_data_available"))
+    ord_available = bool(state.get("ordinance_found"))
+
+    if not env_available and not ord_available:
         return UNABLE_TO_VERIFY
 
     today = date.today().isoformat()
     disqualifiers: list[HardDisqualifier] = []
 
-    if state.get("nwi_overlap"):
-        wetland_type = state.get("nwi_wetland_type") or "wetland"
-        disqualifiers.append(
-            HardDisqualifier(
-                constraint=f"NWI wetland overlap ({wetland_type})",
-                citation=Citation(
-                    source="USFWS National Wetlands Inventory",
-                    reference="Wetlands polygon layer",
-                    retrieval_date=today,
-                ),
+    if env_available:
+        if state.get("nwi_overlap"):
+            wetland_type = state.get("nwi_wetland_type") or "wetland"
+            disqualifiers.append(
+                HardDisqualifier(
+                    constraint=f"NWI wetland overlap ({wetland_type})",
+                    citation=Citation(
+                        source="USFWS National Wetlands Inventory",
+                        reference="Wetlands polygon layer",
+                        retrieval_date=today,
+                    ),
+                )
             )
-        )
 
-    if state.get("padus_overlap"):
-        unit_name = state.get("padus_unit_name") or "protected area"
+        if state.get("padus_overlap"):
+            unit_name = state.get("padus_unit_name") or "protected area"
+            disqualifiers.append(
+                HardDisqualifier(
+                    constraint=f"PAD-US protected lands overlap ({unit_name})",
+                    citation=Citation(
+                        source="USGS Protected Areas Database (PAD-US)",
+                        reference="PAD-US Combined layer — Fee, Designation, Easement, Proclamation",
+                        retrieval_date=today,
+                    ),
+                )
+            )
+
+    if state.get("ordinance_moratorium_active"):
+        section = state.get("ordinance_moratorium_section") or "moratorium provision"
+        retrieval = state.get("ordinance_retrieval_date") or today
         disqualifiers.append(
             HardDisqualifier(
-                constraint=f"PAD-US protected lands overlap ({unit_name})",
+                constraint=f"Active solar permit moratorium — {section}",
                 citation=Citation(
-                    source="USGS Protected Areas Database (PAD-US)",
-                    reference="PAD-US Combined layer — Fee, Designation, Easement, Proclamation",
-                    retrieval_date=today,
+                    source=state.get("ordinance_source") or "unknown",
+                    reference=section,
+                    retrieval_date=retrieval,
                 ),
             )
         )
@@ -266,6 +369,202 @@ def _build_ordinance_summary(state: dict) -> OrdinanceSummary | str:
     )
 
 
+# ---------------------------------------------------------------------------
+# Viability score — deterministic synthesis of all available signals
+# ---------------------------------------------------------------------------
+
+def _build_viability(state: dict) -> Viability:
+    today = date.today().isoformat()
+
+    disqualifiers = _build_hard_disqualifiers(state)
+    if isinstance(disqualifiers, list) and len(disqualifiers) > 0:
+        breakdown = [
+            ScoreComponent(
+                dimension=d.constraint,
+                raw=True,
+                deduction=-100,
+                note="hard disqualifier",
+            )
+            for d in disqualifiers
+        ]
+        return Viability(
+            score=0,
+            stars=0,
+            label="Hard Disqualified",
+            hard_disqualified=True,
+            breakdown=breakdown,
+        )
+
+    components: list[ScoreComponent] = []
+    score = 100
+
+    # Transmission distance
+    if state.get("grid_data_available"):
+        miles = state.get("nearest_transmission_miles") or 0.0
+        ded = _transmission_deduction(miles)
+        components.append(ScoreComponent(dimension="transmission", raw=miles, deduction=ded))
+        score += ded
+    else:
+        components.append(ScoreComponent(dimension="transmission", raw=None, deduction=0, note="unable to verify"))
+
+    # Interconnection queue congestion
+    if state.get("hosting_capacity_available"):
+        mw = state.get("interconnection_capacity_proxy_mw")
+        ded = _queue_deduction(mw)
+        components.append(ScoreComponent(dimension="interconnection_queue", raw=mw, deduction=ded))
+        score += ded
+    else:
+        components.append(ScoreComponent(dimension="interconnection_queue", raw=None, deduction=0, note="unable to verify"))
+
+    # Flood zone
+    if state.get("environmental_data_available"):
+        zone = state.get("flood_zone")
+        ded = _flood_deduction(zone)
+        components.append(ScoreComponent(dimension="flood_zone", raw=zone, deduction=ded))
+        score += ded
+    else:
+        components.append(ScoreComponent(dimension="flood_zone", raw=None, deduction=0, note="unable to verify"))
+
+    # Terrain slope
+    if state.get("terrain_data_available"):
+        pct = state.get("mean_slope_percent")
+        ded = _slope_deduction(pct)
+        components.append(ScoreComponent(dimension="slope", raw=pct, deduction=ded))
+        score += ded
+    else:
+        components.append(ScoreComponent(dimension="slope", raw=None, deduction=0, note="unable to verify"))
+
+    # Ordinance
+    if state.get("ordinance_found"):
+        ord_ded = state.get("ordinance_deduction") or 0
+        components.append(ScoreComponent(dimension="ordinance", raw=state.get("ordinance_summary_text"), deduction=ord_ded))
+        score += ord_ded
+    else:
+        components.append(ScoreComponent(dimension="ordinance", raw=None, deduction=0, note="unable to verify"))
+
+    score = max(1, min(100, score))
+    stars, label = _stars_and_label(score)
+
+    return Viability(
+        score=score,
+        stars=stars,
+        label=label,
+        hard_disqualified=False,
+        breakdown=components,
+    )
+
+
+def _build_top_3_constraints(state: dict) -> list[Constraint] | str:
+    any_signal = (
+        state.get("grid_data_available")
+        or state.get("hosting_capacity_available")
+        or state.get("environmental_data_available")
+        or state.get("terrain_data_available")
+        or state.get("ordinance_found")
+    )
+    if not any_signal:
+        return UNABLE_TO_VERIFY
+
+    today = date.today().isoformat()
+
+    disqualifiers = _build_hard_disqualifiers(state)
+    if isinstance(disqualifiers, list) and len(disqualifiers) > 0:
+        return [
+            Constraint(
+                constraint=d.constraint,
+                impact=100,
+                citation=d.citation,
+            )
+            for d in disqualifiers
+        ][:3]
+
+    constraints: list[Constraint] = []
+
+    if state.get("grid_data_available"):
+        miles = state.get("nearest_transmission_miles") or 0.0
+        ded = _transmission_deduction(miles)
+        if ded < 0:
+            constraints.append(
+                Constraint(
+                    constraint=f"Transmission distance {miles:.1f} miles",
+                    impact=abs(ded),
+                    citation=Citation(
+                        source="HIFLD",
+                        reference="Electric Power Transmission Lines",
+                        retrieval_date=today,
+                    ),
+                )
+            )
+
+    if state.get("hosting_capacity_available"):
+        mw = state.get("interconnection_capacity_proxy_mw")
+        ded = _queue_deduction(mw)
+        if ded < 0:
+            retrieval = state.get("nyiso_retrieval_date") or today
+            constraints.append(
+                Constraint(
+                    constraint=f"Interconnection queue congestion ({mw} MW within 10 miles)",
+                    impact=abs(ded),
+                    citation=Citation(
+                        source="NYISO Interconnection Queue",
+                        reference=f"Queue snapshot {state.get('nyiso_snapshot_date') or 'unknown'}",
+                        retrieval_date=retrieval,
+                    ),
+                )
+            )
+
+    if state.get("environmental_data_available"):
+        zone = state.get("flood_zone")
+        ded = _flood_deduction(zone)
+        if ded < 0:
+            constraints.append(
+                Constraint(
+                    constraint=f"Flood zone {zone}",
+                    impact=abs(ded),
+                    citation=Citation(
+                        source="FEMA National Flood Hazard Layer",
+                        reference="S_Fld_Haz_Ar — Special Flood Hazard Area polygons",
+                        retrieval_date=today,
+                    ),
+                )
+            )
+
+    if state.get("terrain_data_available"):
+        pct = state.get("mean_slope_percent")
+        ded = _slope_deduction(pct)
+        if ded < 0:
+            constraints.append(
+                Constraint(
+                    constraint=f"Terrain slope {pct:.1f}%",
+                    impact=abs(ded),
+                    citation=Citation(
+                        source="USGS 3D Elevation Program (3DEP)",
+                        reference="1/3 arc-second (~10m) Digital Elevation Model — New York",
+                        retrieval_date=today,
+                    ),
+                )
+            )
+
+    if state.get("ordinance_found"):
+        ord_ded = state.get("ordinance_deduction") or 0
+        if ord_ded < 0:
+            retrieval = state.get("ordinance_retrieval_date") or today
+            constraints.append(
+                Constraint(
+                    constraint=f"Local ordinance constraints ({state.get('ordinance_source') or 'ordinance'})",
+                    impact=abs(ord_ded),
+                    citation=Citation(
+                        source=state.get("ordinance_source") or "unknown",
+                        reference=state.get("ordinance_section") or state.get("ordinance_source_url") or "solar zoning",
+                        retrieval_date=retrieval,
+                    ),
+                )
+            )
+
+    constraints.sort(key=lambda c: c.impact, reverse=True)
+    return constraints[:3]
+
+
 def build_memo(state: dict) -> Memo:
     fallback = state.get("parcel_fallback", False)
     if fallback and state.get("parcel_id"):
@@ -293,9 +592,11 @@ def build_memo(state: dict) -> Memo:
     )
     return Memo(
         header=header,
+        viability=_build_viability(state),
         interconnection=_build_interconnection(state),
         environmental=_build_environmental(state),
         terrain=_build_terrain(state),
         hard_disqualifiers=_build_hard_disqualifiers(state),
+        top_3_constraints=_build_top_3_constraints(state),
         ordinance_summary=_build_ordinance_summary(state),
     )
