@@ -50,6 +50,19 @@ def _mock_graph(state_overrides: dict):
         # Terrain
         "mean_slope_percent": None,
         "terrain_data_available": False,
+        # Ordinance
+        "ordinance_available": False,
+        "ordinance_found": False,
+        "ordinance_source": None,
+        "ordinance_source_url": None,
+        "ordinance_section": None,
+        "ordinance_setbacks": None,
+        "ordinance_sup": None,
+        "ordinance_summary_text": None,
+        "ordinance_moratorium_active": False,
+        "ordinance_moratorium_section": None,
+        "ordinance_moratorium_quote": None,
+        "ordinance_retrieval_date": None,
     }
     return {**base, **state_overrides}
 
@@ -487,3 +500,87 @@ def test_screen_hard_disqualifiers_unable_to_verify_when_env_data_unavailable():
 
     assert resp.status_code == 200
     assert resp.json()["hard_disqualifiers"] == "unable to verify"
+
+
+# ---------------------------------------------------------------------------
+# Ordinance summary section
+# ---------------------------------------------------------------------------
+
+def test_screen_ordinance_summary_populated_when_ordinance_found():
+    """ordinance_summary is populated with setbacks/SUP/citation when an ordinance is found."""
+    final = _mock_graph(
+        {
+            "address": "1 Empire State Plaza, Albany, NY",
+            "resolved_lat": 42.6526,
+            "resolved_lng": -73.7562,
+            "muni": "Guilderland",
+            "county": "Albany",
+            "ordinance_available": True,
+            "ordinance_found": True,
+            "ordinance_source": "eCode360",
+            "ordinance_source_url": "https://ecode360.com/GU5678",
+            "ordinance_section": "§ 280-74",
+            "ordinance_setbacks": "Standard district setbacks apply",
+            "ordinance_sup": "Site plan approval for systems over 1 acre",
+            "ordinance_summary_text": "Permissive solar ordinance — standard setbacks only",
+            "ordinance_moratorium_active": False,
+            "ordinance_moratorium_section": None,
+            "ordinance_moratorium_quote": None,
+            "ordinance_retrieval_date": "2026-06-01",
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "1 Empire State Plaza, Albany, NY"})
+
+    assert resp.status_code == 200
+    os_ = resp.json()["ordinance_summary"]
+    assert os_ != "unable to verify"
+    assert os_["source"] == "eCode360"
+    assert os_["section"] == "§ 280-74"
+    assert os_["setbacks"] == "Standard district setbacks apply"
+    assert os_["moratorium"] is None
+    assert os_["citation"]["source"] == "eCode360"
+    assert os_["citation"]["retrieval_date"] == "2026-06-01"
+
+
+def test_screen_ordinance_summary_unable_to_verify_when_not_found():
+    """ordinance_summary is 'unable to verify' when ordinance_available is False."""
+    final = _mock_graph(
+        {
+            "address": "Remote Site, NY",
+            "resolved_lat": 44.0,
+            "resolved_lng": -75.0,
+            "muni": "Unknown Town",
+            "county": "Unknown County",
+            "ordinance_available": False,
+            "ordinance_found": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "Remote Site, NY"})
+
+    assert resp.status_code == 200
+    assert resp.json()["ordinance_summary"] == "unable to verify"
+
+
+def test_screen_ordinance_summary_unable_to_verify_when_searched_not_found():
+    """ordinance_summary is 'unable to verify' when available but ordinance not found."""
+    final = _mock_graph(
+        {
+            "address": "123 Rural Rd, NY",
+            "resolved_lat": 43.5,
+            "resolved_lng": -74.5,
+            "muni": "Smalltown",
+            "county": "Hamilton",
+            "ordinance_available": True,
+            "ordinance_found": False,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "123 Rural Rd, NY"})
+
+    assert resp.status_code == 200
+    assert resp.json()["ordinance_summary"] == "unable to verify"

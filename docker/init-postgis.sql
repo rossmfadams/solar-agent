@@ -33,3 +33,27 @@ CREATE TABLE IF NOT EXISTS nyiso_queue (
 );
 
 CREATE INDEX IF NOT EXISTS nyiso_queue_geom_idx ON nyiso_queue USING GIST (geom);
+
+-- Solar ordinance cache; populated by scripts/seed_ordinance_cache.py or live research
+-- TTL is enforced at read time: rows older than 30 days are treated as stale.
+CREATE TABLE IF NOT EXISTS ordinance_cache (
+    id                  BIGSERIAL PRIMARY KEY,
+    muni                TEXT NOT NULL,
+    county              TEXT NOT NULL,
+    muni_norm           TEXT NOT NULL,
+    county_norm         TEXT NOT NULL,
+    found               BOOLEAN NOT NULL DEFAULT FALSE,
+    source_name         TEXT,
+    source_url          TEXT,
+    document_section    TEXT,
+    setbacks            TEXT,
+    sup_requirements    TEXT,
+    moratorium_active   BOOLEAN NOT NULL DEFAULT FALSE,
+    moratorium_section  TEXT,
+    moratorium_quote    TEXT,
+    summary             TEXT,
+    retrieved_at        DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ordinance_cache_town_idx
+    ON ordinance_cache (muni_norm, county_norm);

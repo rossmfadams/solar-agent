@@ -66,6 +66,22 @@ class HardDisqualifier(BaseModel):
     citation: Citation
 
 
+class Moratorium(BaseModel):
+    active: bool
+    section: str | None = None
+    quote: str | None = None
+
+
+class OrdinanceSummary(BaseModel):
+    source: str
+    section: str | None = None
+    setbacks: str | None = None
+    sup_requirements: str | None = None
+    summary: str | None = None
+    moratorium: Moratorium | None = None
+    citation: Citation
+
+
 class Memo(BaseModel):
     header: MemoHeader
     hard_disqualifiers: Any = UNABLE_TO_VERIFY
@@ -215,6 +231,41 @@ def _build_hard_disqualifiers(state: dict) -> list[HardDisqualifier] | str:
     return disqualifiers
 
 
+def _build_ordinance_summary(state: dict) -> OrdinanceSummary | str:
+    if not state.get("ordinance_available") or not state.get("ordinance_found"):
+        return UNABLE_TO_VERIFY
+
+    moratorium: Moratorium | None = None
+    if state.get("ordinance_moratorium_active"):
+        moratorium = Moratorium(
+            active=True,
+            section=state.get("ordinance_moratorium_section"),
+            quote=state.get("ordinance_moratorium_quote"),
+        )
+
+    retrieval = state.get("ordinance_retrieval_date") or date.today().isoformat()
+    reference = (
+        state.get("ordinance_section")
+        or state.get("ordinance_source_url")
+        or "solar zoning"
+    )
+    citation = Citation(
+        source=state.get("ordinance_source") or "unknown",
+        reference=reference,
+        retrieval_date=retrieval,
+    )
+
+    return OrdinanceSummary(
+        source=state.get("ordinance_source") or "unknown",
+        section=state.get("ordinance_section"),
+        setbacks=state.get("ordinance_setbacks"),
+        sup_requirements=state.get("ordinance_sup"),
+        summary=state.get("ordinance_summary_text"),
+        moratorium=moratorium,
+        citation=citation,
+    )
+
+
 def build_memo(state: dict) -> Memo:
     fallback = state.get("parcel_fallback", False)
     if fallback and state.get("parcel_id"):
@@ -246,4 +297,5 @@ def build_memo(state: dict) -> Memo:
         environmental=_build_environmental(state),
         terrain=_build_terrain(state),
         hard_disqualifiers=_build_hard_disqualifiers(state),
+        ordinance_summary=_build_ordinance_summary(state),
     )
