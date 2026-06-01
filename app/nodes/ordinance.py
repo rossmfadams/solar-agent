@@ -296,9 +296,13 @@ def _map_result(result: dict, retrieval_date: str) -> dict:
 async def _research_tier(muni: str, county: str, tier: Tier) -> dict | None:
     """Search one source tier for a solar ordinance.
 
-    Returns the record_ordinance input dict on success (found=True or found=False
-    per Claude's assessment), or None if the API call itself failed.  The caller
-    treats both found=False and None as "proceed to next tier."
+    Two-step pattern:
+      1. Let Claude search freely (no tool_choice) — web_search_20250305 is
+         server-side; results are auto-populated in the same response.
+      2. If Claude called record_ordinance directly, return it.  Otherwise
+         force record_ordinance extraction from Claude's text summary.
+
+    Returns the record_ordinance input dict, or None if the API call failed.
     """
     try:
         client = _get_client()
@@ -313,34 +317,67 @@ async def _research_tier(muni: str, county: str, tier: Tier) -> dict | None:
     if tier.domains:
         web_search_def["allowed_domains"] = tier.domains
 
+    user_message = (
+        f"Research the enacted solar energy zoning ordinance for "
+        f"the Town of {muni}, {county} County, New York State. "
+        f"Search for setback requirements, Special Use Permit (SUP) "
+        f"requirements, and any active moratorium on new solar "
+        f"applications. Use only sources from {tier.name}."
+    )
+
+    # Step 1 — search.  No tool_choice so web_search executes before any output.
     try:
-        response = await client.messages.create(
+        resp1 = await client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2048,
+            max_tokens=4096,
             system=_SYSTEM_PROMPT,
             tools=[web_search_def, _RECORD_ORDINANCE_TOOL],
-            # Force Claude to output a structured record_ordinance call.
-            # web_search is server-side and executes during generation before
-            # this tool_choice constraint is applied to the final output.
+            messages=[{"role": "user", "content": user_message}],
+        )
+    except Exception:
+        return None
+
+    # Fast path: Claude called record_ordinance directly after searching.
+    for block in resp1.content:
+        if (
+            hasattr(block, "type")
+            and block.type == "tool_use"
+            and block.name == "record_ordinance"
+        ):
+            return block.input  # type: ignore[return-value]
+
+    # Slow path: Claude gave a text summary — force structured extraction.
+    text_parts = [
+        b.text for b in resp1.content
+        if hasattr(b, "type") and b.type == "text" and b.text.strip()
+    ]
+    if not text_parts:
+        return None
+
+    try:
+        resp2 = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            system=_SYSTEM_PROMPT,
+            tools=[_RECORD_ORDINANCE_TOOL],
             tool_choice={"type": "tool", "name": "record_ordinance"},
             messages=[
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": "\n".join(text_parts)},
                 {
                     "role": "user",
                     "content": (
-                        f"Research the enacted solar energy zoning ordinance for "
-                        f"the Town of {muni}, {county} County, New York State. "
-                        f"Search for setback requirements, Special Use Permit (SUP) "
-                        f"requirements, and any active moratorium on new solar "
-                        f"applications. Use only sources from {tier.name}."
+                        "Based on your research above, call record_ordinance with "
+                        "your findings.  If no solar ordinance was found at this "
+                        "source, set found=false and moratorium_active=false."
                     ),
-                }
+                },
             ],
         )
     except Exception:
         return None
 
-    # Extract the record_ordinance tool_use block from the response.
-    for block in response.content:
+    for block in resp2.content:
         if (
             hasattr(block, "type")
             and block.type == "tool_use"
