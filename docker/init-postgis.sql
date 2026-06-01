@@ -57,3 +57,16 @@ CREATE TABLE IF NOT EXISTS ordinance_cache (
 
 CREATE UNIQUE INDEX IF NOT EXISTS ordinance_cache_town_idx
     ON ordinance_cache (muni_norm, county_norm);
+
+-- Screening results; populated by POST /screen
+CREATE TABLE IF NOT EXISTS screens (
+    site_id         UUID PRIMARY KEY,
+    address         TEXT,
+    resolved_lat    DOUBLE PRECISION,
+    resolved_lng    DOUBLE PRECISION,
+    parcel_id       TEXT,
+    parcel_geojson  JSONB,
+    parcel_fallback BOOLEAN NOT NULL DEFAULT FALSE,
+    memo            JSONB NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -80,16 +80,26 @@ def test_screen_address_returns_200_with_all_sections():
             "muni": "Albany",
         }
     )
-    with patch("app.main.compiled_graph") as mock_graph:
+    with (
+        patch("app.main.compiled_graph") as mock_graph,
+        patch("app.main.save_screen", new=AsyncMock(return_value=True)),
+    ):
         mock_graph.ainvoke = AsyncMock(return_value=final)
         resp = client.post("/screen", json={"address": "123 Main St, Albany, NY"})
 
     assert resp.status_code == 200
     data = resp.json()
     assert "header" in data
+    assert "site_id" in data
     for section in MEMO_SECTIONS:
         assert section in data, f"missing section: {section}"
-        assert data[section] == "unable to verify"
+    # interactive_map is now populated; all other sections still "unable to verify"
+    assert isinstance(data["interactive_map"], dict)
+    assert "site_id" in data["interactive_map"]
+    assert data["interactive_map"]["url"].startswith("/screen/")
+    non_map_sections = [s for s in MEMO_SECTIONS if s != "interactive_map"]
+    for section in non_map_sections:
+        assert data[section] == "unable to verify", f"{section} should be unable to verify"
 
 
 def test_screen_lat_lng_returns_200_with_all_sections():
@@ -104,15 +114,20 @@ def test_screen_lat_lng_returns_200_with_all_sections():
             "muni": "Albany",
         }
     )
-    with patch("app.main.compiled_graph") as mock_graph:
+    with (
+        patch("app.main.compiled_graph") as mock_graph,
+        patch("app.main.save_screen", new=AsyncMock(return_value=True)),
+    ):
         mock_graph.ainvoke = AsyncMock(return_value=final)
         resp = client.post("/screen", json={"lat": 42.6526, "lng": -73.7562})
 
     assert resp.status_code == 200
     data = resp.json()
     assert "header" in data
+    assert "site_id" in data
     for section in MEMO_SECTIONS:
         assert section in data
+    assert isinstance(data["interactive_map"], dict)
 
 
 def test_screen_no_parcel_found_notes_fallback():
@@ -147,7 +162,10 @@ def test_screen_all_sections_present_even_without_parcel():
             "resolved_lng": -73.7562,
         }
     )
-    with patch("app.main.compiled_graph") as mock_graph:
+    with (
+        patch("app.main.compiled_graph") as mock_graph,
+        patch("app.main.save_screen", new=AsyncMock(return_value=True)),
+    ):
         mock_graph.ainvoke = AsyncMock(return_value=final)
         resp = client.post("/screen", json={"address": "100 State St, Albany, NY"})
 
@@ -155,7 +173,10 @@ def test_screen_all_sections_present_even_without_parcel():
     data = resp.json()
     for section in MEMO_SECTIONS:
         assert section in data
+    non_map_sections = [s for s in MEMO_SECTIONS if s != "interactive_map"]
+    for section in non_map_sections:
         assert data[section] == "unable to verify"
+    assert isinstance(data["interactive_map"], dict)
 
 
 def test_screen_interconnection_populated_when_grid_data_available():
