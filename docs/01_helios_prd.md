@@ -18,7 +18,7 @@ Solar developers in NY triage dozens of inbound leads per week. The vast majorit
 - Reduce per-site triage from ~45 minutes to under 90 seconds
 - Produce decision-quality memos with citations to every source
 - Cover the three dimensions of Paces' product surface: **siting, interconnection, permitting**
-- Handle batch input (CSV of sites) as a stretch goal
+- ~~Handle batch input (CSV of sites) as a stretch goal~~ — dropped; see Target user below
 
 ## Non-goals
 
@@ -30,14 +30,17 @@ Solar developers in NY triage dozens of inbound leads per week. The vast majorit
 
 ## Target user
 
-**Sarah, Head of Development at a 5-50MW NY-focused solar developer.** Her team receives 30-50 inbound leads/week from landowners and brokers. She wants the obvious no's killed automatically so her analysts spend time on the maybes.
+*Originally scoped for Sarah, a Head of Development at a 5-50MW NY-focused solar developer triaging 30-50 inbound leads/week — that framing motivated the domain and functional requirements below, but Helios is now primarily built and deployed as a portfolio piece.*
+
+**A portfolio site visitor.** They land on Helios's project page, read a short explanation of what it does, then click "Explore project" to try it themselves: paste one NY address, watch the agent work through its checks in real time (~90 seconds), and see the resulting viability memo with map. No login, no persistence across visitors — each browser session sees only its own past runs, listed on the input screen as "Recent runs."
 
 ## User stories
 
-1. **Single-site screen.** Sarah pastes an address; within 90 seconds she sees a one-page memo with viability score (0-100), top 3 constraints, and an interactive map.
+1. **Single-site screen.** Visitor pastes an address; within 90 seconds they see a one-page memo with viability score (0-100), top 3 constraints, and an interactive map.
 2. **Cited reasoning.** Every flag in the memo links back to the source data layer or document section that produced it.
 3. **Ordinance summary.** The memo includes a paragraph summarizing the town's solar zoning rules (setbacks, special-use-permit requirements, any moratorium) with a link to the relevant section of the code.
-4. **Batch mode (stretch).** Sarah uploads a CSV of 20 candidate sites and gets back a ranked report.
+4. **Live progress.** While the pipeline runs, the visitor sees each check as it happens (siting, interconnection, permitting checks run in parallel) rather than a blank loading state — see [ADR-0005](adr/0005-sse-progress-streaming.md).
+5. ~~**Batch mode.** CSV upload of 20 candidate sites, ranked report.~~ — dropped: public, unauthenticated access makes batch runs a cost/abuse risk (see [ADR-0006](adr/0006-public-access-rate-limiting.md)).
 
 ## Functional requirements
 
@@ -73,9 +76,9 @@ Solar developers in NY triage dozens of inbound leads per week. The vast majorit
 
 **LLM:** Anthropic Messages API — Claude Sonnet 4.6 for main reasoning, Claude Haiku 4.5 for cheap classification subtasks.
 
-**Frontend:** Single-page app — server-rendered HTML + Folium for the map.
+**Frontend:** React + Vite + TypeScript SPA, served as static assets by FastAPI; the Folium map is embedded via `<iframe>` against the existing map endpoint. See [ADR-0004](adr/0004-react-spa-frontend-on-flyio.md).
 
-**Infra:** Docker, deployable to Fly.io or Render.
+**Infra:** Docker, deployed as a single Fly.io app with scale-to-zero Machines, prewarmed by the portfolio site on page load. See [ADR-0004](adr/0004-react-spa-frontend-on-flyio.md).
 
 ## Data sources
 
