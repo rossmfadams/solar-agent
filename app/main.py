@@ -1,8 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db import close_pool
 from app.graph import compiled_graph, HeliosState
@@ -76,3 +78,9 @@ async def get_screen_map(site_id: str):
     )
     html = render_map(layers, bool(row.get("parcel_fallback", False)))
     return HTMLResponse(html)
+
+
+# Mounted last so it only handles paths not matched by the API routes above.
+# Only present when the frontend has been built (e.g. in the Docker image); absent in CI/test runs.
+if os.path.isdir("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
