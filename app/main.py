@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -80,4 +81,6 @@ async def get_screen_map(site_id: str):
 
 
 # Mounted last so it only handles paths not matched by the API routes above.
-app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
+# Only present when the frontend has been built (e.g. in the Docker image); absent in CI/test runs.
+if os.path.isdir("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
