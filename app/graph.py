@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from langgraph.graph import StateGraph, END
 
+from app.nodes.bounds import validate_ny_bounds
 from app.nodes.geocode import geocode_address
 from app.nodes.parcel import resolve_parcel
 from app.nodes.grid import check_grid_proximity
@@ -18,6 +19,7 @@ class HeliosState(TypedDict):
     lng: float | None
     resolved_lat: float | None
     resolved_lng: float | None
+    out_of_ny_bounds: bool
     parcel_id: str | None
     county: str | None
     muni: str | None
@@ -65,6 +67,7 @@ class HeliosState(TypedDict):
 def _build_graph():
     builder: StateGraph = StateGraph(HeliosState)
     builder.add_node("geocode_address", geocode_address)
+    builder.add_node("validate_ny_bounds", validate_ny_bounds)
     builder.add_node("resolve_parcel", resolve_parcel)
     builder.add_node("check_grid_proximity", check_grid_proximity)
     builder.add_node("check_hosting_capacity", check_hosting_capacity)
@@ -73,7 +76,13 @@ def _build_graph():
     builder.add_node("research_local_ordinance", research_local_ordinance)
     builder.add_node("synthesize_memo", synthesize_memo)
     builder.set_entry_point("geocode_address")
-    builder.add_edge("geocode_address", "resolve_parcel")
+    builder.add_edge("geocode_address", "validate_ny_bounds")
+    # Out-of-NY sites stop here — no parcel/grid/ordinance/NYISO calls run.
+    builder.add_conditional_edges(
+        "validate_ny_bounds",
+        lambda state: END if state.get("out_of_ny_bounds") else "resolve_parcel",
+        {END: END, "resolve_parcel": "resolve_parcel"},
+    )
     # Fan out from resolve_parcel: grid, environmental, terrain, and ordinance
     # run concurrently in the same superstep.  All fan in at END.
     # Each node writes to a disjoint set of state keys — concurrent writes to

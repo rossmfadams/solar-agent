@@ -154,6 +154,23 @@ def test_screen_missing_input_returns_422():
     assert resp.status_code == 422
 
 
+def test_screen_out_of_ny_bounds_returns_422_friendly_message():
+    final = _mock_graph(
+        {
+            "address": "123 Main St, Columbus, OH",
+            "resolved_lat": 39.9612,
+            "resolved_lng": -82.9988,
+            "out_of_ny_bounds": True,
+        }
+    )
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.ainvoke = AsyncMock(return_value=final)
+        resp = client.post("/screen", json={"address": "123 Main St, Columbus, OH"})
+
+    assert resp.status_code == 422
+    assert "New York" in resp.json()["detail"]
+
+
 def test_screen_all_sections_present_even_without_parcel():
     final = _mock_graph(
         {
