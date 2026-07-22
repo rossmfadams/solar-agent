@@ -117,3 +117,26 @@ export interface ScreenRequest {
   lat?: number;
   lng?: number;
 }
+
+export type NodeEventStatus = "done" | "warning";
+
+export interface NodeEvent {
+  type: "node";
+  node: string;
+  label: string;
+  status: NodeEventStatus;
+}
+
+export interface ErrorEvent {
+  type: "error";
+  node: string;
+  label: string;
+  message: string;
+}
+
+export interface MemoEvent {
+  type: "memo";
+  memo: Memo;
+}
+
+export type ScreenStreamEvent = NodeEvent | ErrorEvent | MemoEvent;
