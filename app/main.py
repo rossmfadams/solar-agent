@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -11,6 +11,14 @@ from app.db import close_pool
 from app.graph import compiled_graph, HeliosState
 from app.map_render import fetch_map_layers, render_map
 from app.models import ScreenRequest, build_memo
+from app.rate_limit import (
+    FRIENDLY_LIMIT_MESSAGE,
+    ConcurrencyLimitExceeded,
+    RateLimitExceeded,
+    acquire_concurrency_slot,
+    check_rate_limit,
+    release_concurrency_slot,
+)
 from app.screens_store import get_screen, save_screen
 
 # Friendly labels for the SSE progress feed, keyed by LangGraph node name.
@@ -57,6 +65,31 @@ def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
+def _client_ip(request: Request) -> str:
+    # Fly's proxy sets this on every proxied request; X-Forwarded-For is a
+    # fallback for local/non-Fly deployments, and request.client.host covers
+    # direct connections (e.g. the test client).
+    fly_ip = request.headers.get("Fly-Client-IP")
+    if fly_ip:
+        return fly_ip
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_limits(request: Request) -> None:
+    try:
+        check_rate_limit(_client_ip(request))
+    except RateLimitExceeded:
+        raise HTTPException(status_code=429, detail=FRIENDLY_LIMIT_MESSAGE)
+
+    try:
+        acquire_concurrency_slot()
+    except ConcurrencyLimitExceeded:
+        raise HTTPException(status_code=429, detail=FRIENDLY_LIMIT_MESSAGE)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -93,83 +126,92 @@ def _initial_state(request: ScreenRequest) -> HeliosState:
 
 
 @app.post("/screen")
-async def screen(request: ScreenRequest):
+async def screen(request: ScreenRequest, http_request: Request):
     try:
         request.validate_input()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    site_id = uuid4()
-    final_state = await compiled_graph.ainvoke(_initial_state(request))
-
-    if final_state.get("out_of_ny_bounds"):
-        raise HTTPException(status_code=422, detail=NY_BOUNDS_MESSAGE)
-
-    memo = build_memo(final_state)
-    memo.interactive_map = {"site_id": str(site_id), "url": f"/screen/{site_id}"}
-
-    await save_screen(site_id, final_state, memo.model_dump())
-
-    result = memo.model_dump()
-    result["site_id"] = str(site_id)
-    return result
-
-
-@app.post("/screen/stream")
-async def screen_stream(request: ScreenRequest):
+    _enforce_limits(http_request)
     try:
-        request.validate_input()
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-
-    async def event_source():
         site_id = uuid4()
-        state: dict = dict(_initial_state(request))
+        final_state = await compiled_graph.ainvoke(_initial_state(request))
 
-        async for update in compiled_graph.astream(state, stream_mode="updates"):
-            for node, node_update in update.items():
-                state.update(node_update)
+        if final_state.get("out_of_ny_bounds"):
+            raise HTTPException(status_code=422, detail=NY_BOUNDS_MESSAGE)
 
-                if node == "geocode_address" and state.get("resolved_lat") is None:
-                    yield _sse({
-                        "type": "error",
-                        "node": node,
-                        "label": NODE_LABELS.get(node, node),
-                        "message": "Could not resolve the address to a location",
-                    })
-                    return
-
-                if node == "validate_ny_bounds" and state.get("out_of_ny_bounds"):
-                    yield _sse({
-                        "type": "error",
-                        "node": node,
-                        "label": NODE_LABELS.get(node, node),
-                        "message": NY_BOUNDS_MESSAGE,
-                    })
-                    return
-
-                # synthesize_memo has four converging edges (one per parallel
-                # branch) and LangGraph fires it once per incoming edge, not
-                # once after all have joined — so it can report "done" before
-                # a sibling branch has finished. Its real completion is the
-                # final memo event below, so skip the progress event here.
-                if node == "synthesize_memo":
-                    continue
-
-                yield _sse({
-                    "type": "node",
-                    "node": node,
-                    "label": NODE_LABELS.get(node, node),
-                    "status": _node_status(node, node_update),
-                })
-
-        memo = build_memo(state)
+        memo = build_memo(final_state)
         memo.interactive_map = {"site_id": str(site_id), "url": f"/screen/{site_id}"}
-        await save_screen(site_id, state, memo.model_dump())
+
+        await save_screen(site_id, final_state, memo.model_dump())
 
         result = memo.model_dump()
         result["site_id"] = str(site_id)
-        yield _sse({"type": "memo", "memo": result})
+        return result
+    finally:
+        release_concurrency_slot()
+
+
+@app.post("/screen/stream")
+async def screen_stream(request: ScreenRequest, http_request: Request):
+    try:
+        request.validate_input()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    _enforce_limits(http_request)
+
+    async def event_source():
+        try:
+            site_id = uuid4()
+            state: dict = dict(_initial_state(request))
+
+            async for update in compiled_graph.astream(state, stream_mode="updates"):
+                for node, node_update in update.items():
+                    state.update(node_update)
+
+                    if node == "geocode_address" and state.get("resolved_lat") is None:
+                        yield _sse({
+                            "type": "error",
+                            "node": node,
+                            "label": NODE_LABELS.get(node, node),
+                            "message": "Could not resolve the address to a location",
+                        })
+                        return
+
+                    if node == "validate_ny_bounds" and state.get("out_of_ny_bounds"):
+                        yield _sse({
+                            "type": "error",
+                            "node": node,
+                            "label": NODE_LABELS.get(node, node),
+                            "message": NY_BOUNDS_MESSAGE,
+                        })
+                        return
+
+                    # synthesize_memo has four converging edges (one per parallel
+                    # branch) and LangGraph fires it once per incoming edge, not
+                    # once after all have joined — so it can report "done" before
+                    # a sibling branch has finished. Its real completion is the
+                    # final memo event below, so skip the progress event here.
+                    if node == "synthesize_memo":
+                        continue
+
+                    yield _sse({
+                        "type": "node",
+                        "node": node,
+                        "label": NODE_LABELS.get(node, node),
+                        "status": _node_status(node, node_update),
+                    })
+
+            memo = build_memo(state)
+            memo.interactive_map = {"site_id": str(site_id), "url": f"/screen/{site_id}"}
+            await save_screen(site_id, state, memo.model_dump())
+
+            result = memo.model_dump()
+            result["site_id"] = str(site_id)
+            yield _sse({"type": "memo", "memo": result})
+        finally:
+            release_concurrency_slot()
 
     return StreamingResponse(
         event_source(),
