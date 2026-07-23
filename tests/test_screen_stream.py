@@ -108,6 +108,25 @@ def test_screen_stream_emits_error_when_geocode_resolves_nothing():
     assert parsed[0]["node"] == "geocode_address"
 
 
+def test_screen_stream_emits_error_when_out_of_ny_bounds():
+    events = [
+        {"geocode_address": {"resolved_lat": 39.9612, "resolved_lng": -82.9988}},
+        {"validate_ny_bounds": {"out_of_ny_bounds": True}},
+    ]
+
+    with patch("app.main.compiled_graph") as mock_graph:
+        mock_graph.astream = lambda *a, **k: _updates(events)
+        resp = client.post("/screen/stream", json={"address": "123 Main St, Columbus, OH"})
+
+    assert resp.status_code == 200
+    parsed = _parse_sse(resp.text)
+
+    error_events = [p for p in parsed if p["type"] == "error"]
+    assert len(error_events) == 1
+    assert error_events[0]["node"] == "validate_ny_bounds"
+    assert "New York" in error_events[0]["message"]
+
+
 def test_screen_stream_missing_input_returns_422():
     resp = client.post("/screen/stream", json={})
     assert resp.status_code == 422

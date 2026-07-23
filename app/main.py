@@ -16,6 +16,7 @@ from app.screens_store import get_screen, save_screen
 # Friendly labels for the SSE progress feed, keyed by LangGraph node name.
 NODE_LABELS = {
     "geocode_address": "Geocoding address",
+    "validate_ny_bounds": "Checking service area",
     "resolve_parcel": "Resolving parcel",
     "check_grid_proximity": "Checking grid proximity",
     "check_hosting_capacity": "Checking hosting capacity",
@@ -49,6 +50,9 @@ def _node_status(node: str, update: dict) -> str:
     return "done" if update.get(flag) else "warning"
 
 
+NY_BOUNDS_MESSAGE = "Helios currently only covers New York State sites — try an address in NY"
+
+
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
@@ -74,6 +78,7 @@ def _initial_state(request: ScreenRequest) -> HeliosState:
         "lng": request.lng,
         "resolved_lat": None,
         "resolved_lng": None,
+        "out_of_ny_bounds": False,
         "parcel_id": None,
         "county": None,
         "muni": None,
@@ -96,6 +101,10 @@ async def screen(request: ScreenRequest):
 
     site_id = uuid4()
     final_state = await compiled_graph.ainvoke(_initial_state(request))
+
+    if final_state.get("out_of_ny_bounds"):
+        raise HTTPException(status_code=422, detail=NY_BOUNDS_MESSAGE)
+
     memo = build_memo(final_state)
     memo.interactive_map = {"site_id": str(site_id), "url": f"/screen/{site_id}"}
 
@@ -127,6 +136,15 @@ async def screen_stream(request: ScreenRequest):
                         "node": node,
                         "label": NODE_LABELS.get(node, node),
                         "message": "Could not resolve the address to a location",
+                    })
+                    return
+
+                if node == "validate_ny_bounds" and state.get("out_of_ny_bounds"):
+                    yield _sse({
+                        "type": "error",
+                        "node": node,
+                        "label": NODE_LABELS.get(node, node),
+                        "message": NY_BOUNDS_MESSAGE,
                     })
                     return
 
