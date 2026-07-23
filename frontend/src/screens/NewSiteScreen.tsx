@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { streamScreen } from "../api/screen";
+import { useQueryClient } from "@tanstack/react-query";
+import { getScreenMemo, streamScreen } from "../api/screen";
+import { getRecentRuns, saveRecentRun, type RecentRun } from "../api/recentRuns";
 import type { Memo } from "../api/types";
+import { isVerified, UNABLE_TO_VERIFY } from "../api/types";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -11,8 +14,12 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, StepState>>({});
+  const [recentRuns, setRecentRuns] = useState<RecentRun[]>(() => getRecentRuns());
+  const queryClient = useQueryClient();
 
   const run = async () => {
+    if (running || !address.trim()) return;
+
     setError(null);
     setSteps({});
     setRunning(true);
@@ -28,6 +35,9 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
           setError(event.message);
           setRunning(false);
         } else if (event.type === "memo") {
+          const score = isVerified(event.memo.viability) ? event.memo.viability.score : null;
+          saveRecentRun({ site_id: event.memo.site_id, address, score });
+          setRecentRuns(getRecentRuns());
           onComplete(event.memo);
         }
       });
@@ -35,6 +45,18 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
       setError((err as Error).message);
     } finally {
       setRunning(false);
+    }
+  };
+
+  const openRecentRun = async (siteId: string) => {
+    try {
+      const memo = await queryClient.fetchQuery({
+        queryKey: ["screen-memo", siteId],
+        queryFn: () => getScreenMemo(siteId),
+      });
+      onComplete(memo);
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
@@ -53,6 +75,7 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
             placeholder="123 County Rd, Madison County, NY"
             value={address}
             onChange={setAddress}
+            onEnter={run}
             error={error ?? undefined}
           />
           <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
@@ -64,6 +87,39 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
         {running && (
           <Card style={{ marginTop: 16 }}>
             <ProgressChecklist completed={steps} />
+          </Card>
+        )}
+        {!running && recentRuns.length > 0 && (
+          <Card style={{ marginTop: 16 }}>
+            <div style={{ font: "var(--text-label-md)", color: "var(--text-primary)", marginBottom: 8 }}>
+              Recent runs
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {recentRuns.map((r) => (
+                <button
+                  key={r.site_id}
+                  onClick={() => openRecentRun(r.site_id)}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "transparent",
+                    border: "none",
+                    borderRadius: "var(--radius-md)",
+                    padding: "8px 6px",
+                    cursor: "pointer",
+                    font: "var(--text-body-md)",
+                    color: "var(--text-primary)",
+                    textAlign: "left",
+                  }}
+                >
+                  <span>{r.address}</span>
+                  <span style={{ color: "var(--text-tertiary)" }}>
+                    {r.score !== null ? r.score : UNABLE_TO_VERIFY}
+                  </span>
+                </button>
+              ))}
+            </div>
           </Card>
         )}
         <div style={{ font: "var(--text-body-sm)", color: "var(--text-muted)", marginTop: 14, textAlign: "center" }}>

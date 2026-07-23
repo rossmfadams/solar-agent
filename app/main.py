@@ -178,6 +178,15 @@ async def screen_stream(request: ScreenRequest):
     )
 
 
+@app.get("/screen/{site_id}/memo")
+async def get_screen_memo(site_id: str):
+    row = await get_screen(site_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Screen not found")
+
+    return row["memo"]
+
+
 @app.get("/screen/{site_id}")
 async def get_screen_map(site_id: str):
     row = await get_screen(site_id)
