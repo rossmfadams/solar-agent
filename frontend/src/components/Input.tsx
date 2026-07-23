@@ -3,6 +3,7 @@ export function Input({
   placeholder,
   value,
   onChange,
+  onEnter,
   helper,
   error,
 }: {
@@ -10,6 +11,7 @@ export function Input({
   placeholder?: string;
   value: string;
   onChange?: (value: string) => void;
+  onEnter?: () => void;
   helper?: string;
   error?: string;
 }) {
@@ -20,6 +22,9 @@ export function Input({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onEnter?.();
+        }}
         style={{
           font: "var(--text-body-md)",
           color: "var(--text-primary)",

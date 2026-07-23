@@ -1,5 +1,16 @@
 import type { Memo, ScreenRequest, ScreenStreamEvent } from "./types";
 
+export async function getScreenMemo(siteId: string): Promise<Memo> {
+  const response = await fetch(`/screen/${siteId}/memo`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail ?? `Memo request failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
 export async function postScreen(request: ScreenRequest): Promise<Memo> {
   const response = await fetch("/screen", {
     method: "POST",
