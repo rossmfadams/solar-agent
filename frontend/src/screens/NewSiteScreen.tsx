@@ -4,9 +4,9 @@ import { getScreenMemo, streamScreen } from "../api/screen";
 import { getRecentRuns, saveRecentRun, type RecentRun } from "../api/recentRuns";
 import type { Memo } from "../api/types";
 import { isVerified, UNABLE_TO_VERIFY } from "../api/types";
+import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Input } from "../components/Input";
 import { ProgressChecklist, type StepState } from "../components/ProgressChecklist";
 
 export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void }) {
@@ -70,9 +70,7 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
           Enter an address. Watch the agent work — a structured memo is ready in about 90 seconds.
         </div>
         <Card style={{ marginTop: 24 }}>
-          <Input
-            label="Address"
-            placeholder="123 County Rd, Madison County, NY"
+          <AddressAutocomplete
             value={address}
             onChange={setAddress}
             onEnter={run}
