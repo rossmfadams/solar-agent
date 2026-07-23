@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.db import close_pool
+from app.geocode_suggest import suggest_addresses
 from app.graph import compiled_graph, HeliosState
 from app.map_render import fetch_map_layers, render_map
 from app.models import ScreenRequest, build_memo
@@ -90,6 +91,14 @@ def _initial_state(request: ScreenRequest) -> HeliosState:
         "nyiso_retrieval_date": None,
         "hosting_capacity_available": False,
     }
+
+
+@app.get("/geocode/suggest")
+async def geocode_suggest(q: str = ""):
+    query = q.strip()
+    if len(query) < 3:
+        return {"enabled": bool(os.environ.get("MAPBOX_TOKEN")), "suggestions": []}
+    return await suggest_addresses(query)
 
 
 @app.post("/screen")
