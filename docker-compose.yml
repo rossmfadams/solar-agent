@@ -23,6 +23,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN}
     depends_on:
       db:
         condition: service_healthy

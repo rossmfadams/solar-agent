@@ -7,6 +7,7 @@ export default defineConfig({
     proxy: {
       "/screen": "http://localhost:8000",
       "/health": "http://localhost:8000",
+      "/geocode": "http://localhost:8000",
     },
   },
 });
