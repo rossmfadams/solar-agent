@@ -1,0 +1,70 @@
+/* Layout: fluid containers instead of fixed widths */
+.screen-shell {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(16px, 5vw, 28px);
+}
+
+.new-site-container {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Memo detail: 3-col dimension grid collapses to 1 col below 640px */
+.memo-dimension-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+@media (max-width: 640px) {
+  .memo-dimension-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Memo detail: content/map 1.1fr/1fr grid collapses to 1 col below 860px */
+.memo-detail-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 860px) {
+  .memo-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.memo-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .memo-header-row {
+    flex-direction: column;
+  }
+}
+
+/* Touch targets: every interactive control gets a real 44x44 hit area,
+   independent of its visual (padding-driven) size. */
+.tap-target {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button.tap-target-block {
+  min-height: 44px;
+  width: 100%;
+  display: flex;
+}
+
+a.tap-target,
+button.tap-target {
+  min-width: 44px;
+}
