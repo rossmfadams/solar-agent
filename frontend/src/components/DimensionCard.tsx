@@ -28,7 +28,7 @@ export function DimensionCard({
       }}
     >
       <div style={{ font: "var(--text-label-sm)", color: "var(--text-muted)" }}>{label}</div>
-      <div style={{ font: `600 17px var(--font-display)`, color: TONE_COLOR[tone], marginTop: 4 }}>{status}</div>
+      <div style={{ font: "var(--text-display-xs)", color: TONE_COLOR[tone], marginTop: 4 }}>{status}</div>
       {detail && <div style={{ font: "var(--text-body-sm)", color: "var(--text-muted)", marginTop: 2 }}>{detail}</div>}
     </div>
   );

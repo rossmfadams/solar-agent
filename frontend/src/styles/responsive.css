@@ -1,5 +1,8 @@
 /* Layout: fluid containers instead of fixed widths */
 .screen-shell {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
   padding: clamp(16px, 5vw, 28px);
 }
 
