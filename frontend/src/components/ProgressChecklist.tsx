@@ -67,22 +67,30 @@ export function ProgressChecklist({ completed }: { completed: Record<string, Ste
   const completedOrder = Object.keys(completed);
   const remaining = STEP_ORDER.filter((node) => !completed[node]);
 
+  const activeNode = remaining.find((node) => PREDECESSORS[node].every((p) => completed[p]));
+  const activeLabel = activeNode ? LABELS[activeNode] : undefined;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {activeLabel ? `${activeLabel}…` : "Screening complete"}
+      </span>
       <style>{"@keyframes helios-spin { to { transform: rotate(360deg); } }"}</style>
-      {completedOrder.map((node) => (
-        <Row key={node} label={completed[node].label} status={completed[node].status} />
-      ))}
-      {remaining.map((node) => {
-        const predecessorsDone = PREDECESSORS[node].every((p) => completed[p]);
-        return (
-          <Row
-            key={node}
-            label={LABELS[node]}
-            status={predecessorsDone ? "running" : "pending"}
-          />
-        );
-      })}
+      <div aria-hidden="true">
+        {completedOrder.map((node) => (
+          <Row key={node} label={completed[node].label} status={completed[node].status} />
+        ))}
+        {remaining.map((node) => {
+          const predecessorsDone = PREDECESSORS[node].every((p) => completed[p]);
+          return (
+            <Row
+              key={node}
+              label={LABELS[node]}
+              status={predecessorsDone ? "running" : "pending"}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

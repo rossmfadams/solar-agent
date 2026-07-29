@@ -18,6 +18,7 @@
   --stone-100: #EEEAE2;
   --stone-150: #E7E2D9;
   --stone-400: #8A8172;
+  --stone-450: #766D5D;
   --stone-500: #6E6656;
   --stone-800: #4A4437;
   --stone-900: #1F1B14;
@@ -49,7 +50,7 @@
   --text-primary: var(--stone-900);
   --text-secondary: var(--stone-800);
   --text-tertiary: var(--stone-500);
-  --text-muted: var(--stone-400);
+  --text-muted: var(--stone-450);
   --text-on-accent: #FFFFFF;
 
   --accent: var(--amber-500);
@@ -66,31 +67,96 @@
   --shadow-elevated: 0 8px 24px rgba(30, 25, 15, 0.10);
 }
 
+/* Dark semantic values, defined once and shared by both the explicit
+   [data-theme="dark"] override and the OS-preference fallback below, so the
+   two activation paths can never drift out of sync with each other. */
+:root {
+  --dark-bg-page: var(--charcoal-900);
+  --dark-surface-card: var(--charcoal-800);
+  --dark-surface-subtle: var(--charcoal-800);
+  --dark-surface-accent-soft: var(--charcoal-700);
+  --dark-border-default: var(--charcoal-border);
+  --dark-border-subtle: var(--charcoal-border);
+  --dark-border-accent: var(--charcoal-border-accent);
+
+  --dark-text-primary: var(--charcoal-text-primary);
+  --dark-text-secondary: #D6CFC0;
+  --dark-text-tertiary: var(--charcoal-text-secondary);
+  --dark-text-muted: var(--charcoal-text-secondary);
+  --dark-text-on-accent: var(--charcoal-900);
+
+  --dark-accent: var(--amber-dark-500);
+  --dark-accent-strong: var(--amber-dark-300);
+  --dark-accent-on-soft: var(--amber-dark-300);
+
+  --dark-status-success: var(--green-dark-500);
+  --dark-status-success-strong: var(--green-dark-500);
+  --dark-status-warning: var(--amber-warn-dark);
+  --dark-status-danger: var(--red-dark-500);
+  --dark-status-danger-strong: var(--red-dark-500);
+
+  --dark-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.24);
+  --dark-shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.36);
+}
+
 [data-theme="dark"] {
-  --bg-page: var(--charcoal-900);
-  --surface-card: var(--charcoal-800);
-  --surface-subtle: var(--charcoal-800);
-  --surface-accent-soft: var(--charcoal-700);
-  --border-default: var(--charcoal-border);
-  --border-subtle: var(--charcoal-border);
-  --border-accent: var(--charcoal-border-accent);
+  --bg-page: var(--dark-bg-page);
+  --surface-card: var(--dark-surface-card);
+  --surface-subtle: var(--dark-surface-subtle);
+  --surface-accent-soft: var(--dark-surface-accent-soft);
+  --border-default: var(--dark-border-default);
+  --border-subtle: var(--dark-border-subtle);
+  --border-accent: var(--dark-border-accent);
 
-  --text-primary: var(--charcoal-text-primary);
-  --text-secondary: #D6CFC0;
-  --text-tertiary: var(--charcoal-text-secondary);
-  --text-muted: var(--charcoal-text-secondary);
-  --text-on-accent: var(--charcoal-900);
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  --text-tertiary: var(--dark-text-tertiary);
+  --text-muted: var(--dark-text-muted);
+  --text-on-accent: var(--dark-text-on-accent);
 
-  --accent: var(--amber-dark-500);
-  --accent-strong: var(--amber-dark-300);
-  --accent-on-soft: var(--amber-dark-300);
+  --accent: var(--dark-accent);
+  --accent-strong: var(--dark-accent-strong);
+  --accent-on-soft: var(--dark-accent-on-soft);
 
-  --status-success: var(--green-dark-500);
-  --status-success-strong: var(--green-dark-500);
-  --status-warning: var(--amber-warn-dark);
-  --status-danger: var(--red-dark-500);
-  --status-danger-strong: var(--red-dark-500);
+  --status-success: var(--dark-status-success);
+  --status-success-strong: var(--dark-status-success-strong);
+  --status-warning: var(--dark-status-warning);
+  --status-danger: var(--dark-status-danger);
+  --status-danger-strong: var(--dark-status-danger-strong);
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.24);
-  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.36);
+  --shadow-card: var(--dark-shadow-card);
+  --shadow-elevated: var(--dark-shadow-elevated);
+}
+
+/* Follow the OS preference when the visitor hasn't made an explicit choice
+   (no data-theme attribute set / persisted yet). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --bg-page: var(--dark-bg-page);
+    --surface-card: var(--dark-surface-card);
+    --surface-subtle: var(--dark-surface-subtle);
+    --surface-accent-soft: var(--dark-surface-accent-soft);
+    --border-default: var(--dark-border-default);
+    --border-subtle: var(--dark-border-subtle);
+    --border-accent: var(--dark-border-accent);
+
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-tertiary: var(--dark-text-tertiary);
+    --text-muted: var(--dark-text-muted);
+    --text-on-accent: var(--dark-text-on-accent);
+
+    --accent: var(--dark-accent);
+    --accent-strong: var(--dark-accent-strong);
+    --accent-on-soft: var(--dark-accent-on-soft);
+
+    --status-success: var(--dark-status-success);
+    --status-success-strong: var(--dark-status-success-strong);
+    --status-warning: var(--dark-status-warning);
+    --status-danger: var(--dark-status-danger);
+    --status-danger-strong: var(--dark-status-danger-strong);
+
+    --shadow-card: var(--dark-shadow-card);
+    --shadow-elevated: var(--dark-shadow-elevated);
+  }
 }

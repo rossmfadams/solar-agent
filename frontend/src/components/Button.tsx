@@ -36,9 +36,11 @@ export function Button({
       disabled={disabled}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="tap-target"
       style={{
         display: "inline-flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: 8,
         borderRadius: "var(--radius-md)",
         cursor: disabled ? "not-allowed" : "pointer",
