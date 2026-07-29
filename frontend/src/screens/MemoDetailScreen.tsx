@@ -146,24 +146,25 @@ export function MemoDetailScreen({ memo, onBack }: { memo: Memo; onBack: () => v
   const { header } = memo;
 
   return (
-    <div style={{ padding: 28, fontFamily: "var(--font-ui)", flex: 1, overflow: "auto" }}>
+    <div className="screen-shell" style={{ fontFamily: "var(--font-ui)", flex: 1, overflow: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <button
+          className="tap-target"
           onClick={onBack}
-          style={{ background: "none", border: "none", color: "var(--text-tertiary)", cursor: "pointer", font: "var(--text-label-md)" }}
+          style={{ background: "none", border: "none", padding: "0 4px", color: "var(--text-tertiary)", cursor: "pointer", font: "var(--text-label-md)" }}
         >
           ← New site
         </button>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+      <div className="memo-header-row">
         <div>
           <div style={{ font: "var(--text-eyebrow)", textTransform: "uppercase", letterSpacing: "var(--tracking-eyebrow)", color: "var(--text-muted)" }}>
             Site memo
           </div>
-          <div style={{ font: "var(--text-display-md)", color: "var(--text-primary)", marginTop: 4 }}>
+          <h1 style={{ font: "var(--text-display-md)", color: "var(--text-primary)", marginTop: 4 }}>
             {header.address ?? `${header.lat}, ${header.lng}`}
-          </div>
+          </h1>
           <div style={{ font: "var(--text-body-sm)", color: "var(--text-tertiary)", marginTop: 4 }}>
             {header.county ?? "Unknown county"} · {header.municipality ?? "Unknown municipality"}
             {header.parcel_fallback && " · parcel boundary estimated (500m buffer)"}
@@ -174,16 +175,21 @@ export function MemoDetailScreen({ memo, onBack }: { memo: Memo; onBack: () => v
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 24 }}>
+      <div className="memo-dimension-grid">
         {hardDisqualifierCard(memo.hard_disqualifiers)}
         {topConstraintsCard(memo.top_3_constraints)}
         {ordinanceStatusCard(memo.ordinance_summary)}
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <Tabs tabs={DETAIL_TABS} active={tab} onChange={setTab} />
-        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 20 }}>
-          <div>
+        <Tabs tabs={DETAIL_TABS} active={tab} onChange={setTab} idPrefix="memo-detail" />
+        <div className="memo-detail-grid">
+          <div
+            id={`memo-detail-panel-${tab}`}
+            role="tabpanel"
+            aria-labelledby={`memo-detail-tab-${tab}`}
+            tabIndex={0}
+          >
             {tab === "interconnection" && <InterconnectionDetail data={memo.interconnection} />}
             {tab === "environmental" && <EnvironmentalDetail data={memo.environmental} />}
             {tab === "terrain" && <TerrainDetail data={memo.terrain} />}

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { suggestAddresses, type AddressSuggestion } from "../api/geocode";
 import { Input } from "./Input";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 3;
+const LISTBOX_ID = "address-suggestions";
 
 export function AddressAutocomplete({
   value,
@@ -19,6 +20,7 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState(true);
+  const [highlighted, setHighlighted] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const abortRef = useRef<AbortController>();
 
@@ -32,6 +34,7 @@ export function AddressAutocomplete({
   const handleChange = (next: string) => {
     onChange(next);
     setOpen(false);
+    setHighlighted(-1);
 
     clearTimeout(debounceRef.current);
     abortRef.current?.abort();
@@ -60,20 +63,47 @@ export function AddressAutocomplete({
     onChange(suggestion.label);
     setSuggestions([]);
     setOpen(false);
+    setHighlighted(-1);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!open || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && highlighted >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[highlighted]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setHighlighted(-1);
+    }
   };
 
   return (
     <div style={{ position: "relative" }}>
       <Input
+        id="site-address"
         label="Address"
         placeholder="123 County Rd, Madison County, NY"
         value={value}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         onEnter={onEnter}
         error={error}
+        role="combobox"
+        ariaExpanded={open && suggestions.length > 0}
+        ariaControls={LISTBOX_ID}
+        ariaActiveDescendant={highlighted >= 0 ? `address-option-${highlighted}` : undefined}
+        ariaAutoComplete="list"
       />
       {open && suggestions.length > 0 && (
         <div
+          id={LISTBOX_ID}
+          role="listbox"
           style={{
             position: "absolute",
             top: "100%",
@@ -88,16 +118,19 @@ export function AddressAutocomplete({
             overflow: "hidden",
           }}
         >
-          {suggestions.map((s) => (
+          {suggestions.map((s, i) => (
             <button
               key={`${s.label}-${s.lat}-${s.lng}`}
+              id={`address-option-${i}`}
+              role="option"
+              aria-selected={highlighted === i}
               type="button"
+              className="tap-target-block"
+              onMouseEnter={() => setHighlighted(i)}
               onClick={() => selectSuggestion(s)}
               style={{
-                display: "block",
-                width: "100%",
                 textAlign: "left",
-                background: "transparent",
+                background: highlighted === i ? "var(--surface-accent-soft)" : "transparent",
                 border: "none",
                 padding: "8px 12px",
                 cursor: "pointer",

@@ -61,14 +61,14 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
   };
 
   return (
-    <div style={{ padding: 28, fontFamily: "var(--font-ui)", flex: 1, display: "flex", justifyContent: "center" }}>
-      <div style={{ width: 480, marginTop: 40 }}>
-        <div style={{ font: "var(--text-display-md)", color: "var(--text-primary)", textAlign: "center" }}>
+    <div className="screen-shell" style={{ fontFamily: "var(--font-ui)", flex: 1, display: "flex", justifyContent: "center" }}>
+      <div className="new-site-container" style={{ marginTop: 40 }}>
+        <h1 style={{ font: "var(--text-display-md)", color: "var(--text-primary)", textAlign: "center" }}>
           New site diligence
-        </div>
-        <div style={{ font: "var(--text-body-md)", color: "var(--text-tertiary)", textAlign: "center", marginTop: 6 }}>
+        </h1>
+        <p style={{ font: "var(--text-body-md)", color: "var(--text-tertiary)", textAlign: "center", marginTop: 6 }}>
           Enter an address. Watch the agent work — a structured memo is ready in about 90 seconds.
-        </div>
+        </p>
         <Card style={{ marginTop: 24 }}>
           <AddressAutocomplete
             value={address}
@@ -89,16 +89,16 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
         )}
         {!running && recentRuns.length > 0 && (
           <Card style={{ marginTop: 16 }}>
-            <div style={{ font: "var(--text-label-md)", color: "var(--text-primary)", marginBottom: 8 }}>
+            <h2 style={{ font: "var(--text-label-md)", color: "var(--text-primary)", marginBottom: 8 }}>
               Recent runs
-            </div>
+            </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {recentRuns.map((r) => (
                 <button
                   key={r.site_id}
+                  className="tap-target-block"
                   onClick={() => openRecentRun(r.site_id)}
                   style={{
-                    display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     background: "transparent",

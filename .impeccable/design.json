@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-28T20:39:09Z",
+  "title": "Design System: Helios",
+  "extensions": {
+    "colorMeta": {
+      "amber-500": { "role": "primary", "displayName": "Field Amber", "canonical": "#DD8018", "tonalRamp": ["#3A2610", "#5C3A14", "#844F14", "#AC6413", "#DD8018", "#F0A648", "#F7C685", "#FBE3C2"] },
+      "amber-600": { "role": "primary", "displayName": "Field Amber Strong", "canonical": "#B4690E", "tonalRamp": ["#301F0A", "#4C300F", "#6C4411", "#8F5710", "#B4690E", "#D68A34", "#EBB878", "#F7DEBC"] },
+      "amber-700": { "role": "primary", "displayName": "Field Amber Deep", "canonical": "#9A6A0C", "tonalRamp": ["#2A1F09", "#40300D", "#5C440F", "#7A570F", "#9A6A0C", "#C08D34", "#DDB876", "#F2DFBC"] },
+      "amber-50": { "role": "primary", "displayName": "Amber Wash", "canonical": "#FBF4E6", "tonalRamp": ["#3A2E14", "#5C4A20", "#8A7233", "#BFA05C", "#DDC28C", "#F0DFBC", "#F8ECD9", "#FBF4E6"] },
+      "amber-100": { "role": "primary", "displayName": "Amber Border", "canonical": "#F0E3C6", "tonalRamp": ["#3A2E14", "#5C4A20", "#8A7233", "#BFA05C", "#DDC28C", "#EAD9AF", "#F0E3C6", "#F7EEDA"] },
+      "green-500": { "role": "success", "displayName": "Field Success Green", "canonical": "#3D7A3F", "tonalRamp": ["#0F1F10", "#183218", "#265026", "#316531", "#3D7A3F", "#5E9C60", "#8CBF8D", "#C4E0C4"] },
+      "green-600": { "role": "success", "displayName": "Field Success Green Strong", "canonical": "#2F6B3A", "tonalRamp": ["#0C1B10", "#132C1A", "#1F4529", "#275735", "#2F6B3A", "#4F8D58", "#82B489", "#C0DEC3"] },
+      "red-500": { "role": "danger", "displayName": "Disqualifier Red", "canonical": "#B23B2E", "tonalRamp": ["#2E0F0A", "#4A1811", "#6B231A", "#8E2E22", "#B23B2E", "#CE6151", "#E29488", "#F2C9C2"] },
+      "red-600": { "role": "danger", "displayName": "Disqualifier Red Strong", "canonical": "#96311F", "tonalRamp": ["#280C06", "#41140A", "#5E1E10", "#7A2818", "#96311F", "#BB543F", "#DA8672", "#F0BFB2"] },
+      "stone-25": { "role": "neutral", "displayName": "Paper White", "canonical": "#FDFCFA", "tonalRamp": ["#1F1B14", "#4A4437", "#6E6656", "#8A8172", "#B5AC9B", "#D9D2C4", "#EEEAE2", "#FDFCFA"] },
+      "stone-50": { "role": "neutral", "displayName": "Paper Wash", "canonical": "#F8F6F1", "tonalRamp": ["#1F1B14", "#4A4437", "#6E6656", "#8A8172", "#B5AC9B", "#D9D2C4", "#EEEAE2", "#F8F6F1"] },
+      "stone-100": { "role": "neutral", "displayName": "Notebook Border", "canonical": "#EEEAE2", "tonalRamp": ["#1F1B14", "#4A4437", "#6E6656", "#8A8172", "#B5AC9B", "#D9D2C4", "#E7E2D9", "#EEEAE2"] },
+      "stone-400": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#8A8172", "tonalRamp": ["#1F1B14", "#332F27", "#4A4437", "#6E6656", "#8A8172", "#ABA294", "#CBC4B7", "#E7E2D9"] },
+      "stone-500": { "role": "neutral", "displayName": "Secondary Ink", "canonical": "#6E6656", "tonalRamp": ["#1F1B14", "#332F27", "#4A4437", "#6E6656", "#8A8172", "#ABA294", "#CBC4B7", "#E7E2D9"] },
+      "stone-800": { "role": "neutral", "displayName": "Body Ink", "canonical": "#4A4437", "tonalRamp": ["#1F1B14", "#332F27", "#4A4437", "#6E6656", "#8A8172", "#ABA294", "#CBC4B7", "#E7E2D9"] },
+      "stone-900": { "role": "neutral", "displayName": "Primary Ink", "canonical": "#1F1B14", "tonalRamp": ["#1F1B14", "#332F27", "#4A4437", "#6E6656", "#8A8172", "#ABA294", "#CBC4B7", "#E7E2D9"] }
+    },
+    "typographyMeta": {
+      "display-lg": { "displayName": "Display Large", "purpose": "Page-level hero headings." },
+      "display-md": { "displayName": "Display Medium", "purpose": "Section and memo headings." },
+      "display-sm": { "displayName": "Display Small", "purpose": "Card titles, dimension status values." },
+      "display-xs": { "displayName": "Display Extra Small", "purpose": "Compact serif emphasis, e.g. small star ratings." },
+      "body-lg": { "displayName": "Body Large", "purpose": "Primary reading copy." },
+      "body-md": { "displayName": "Body Medium", "purpose": "Default UI and body text." },
+      "body-sm": { "displayName": "Body Small", "purpose": "Secondary/helper text." },
+      "label-md": { "displayName": "Label Medium", "purpose": "Form labels, tabs, medium buttons." },
+      "label-sm": { "displayName": "Label Small", "purpose": "Tags, compact buttons, captions." },
+      "eyebrow": { "displayName": "Eyebrow", "purpose": "Reserved section kicker treatment." }
+    },
+    "shadows": [
+      { "name": "shadow-card", "value": "0 1px 3px rgba(30, 25, 15, 0.06)", "purpose": "Default ambient shadow for resting cards and surfaces." },
+      { "name": "shadow-elevated", "value": "0 8px 24px rgba(30, 25, 15, 0.10)", "purpose": "Floating elements only — popovers, dropdowns (e.g. address autocomplete)." }
+    ],
+    "motion": [
+      { "name": "button-transition", "value": "opacity 0.15s ease, background 0.15s ease", "purpose": "Hover/disabled state transition on buttons." },
+      { "name": "spin", "value": "helios-spin 0.8s linear infinite", "purpose": "Running-step spinner in the progress checklist." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Filled amber call-to-action button.",
+      "html": "<button class=\"ds-btn-primary\">Run screening</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; background: #DD8018; color: #FFFFFF; border: 1px solid #DD8018; border-radius: 10px; padding: 9px 16px; font: 500 13px/1.4 'Instrument Sans', -apple-system, sans-serif; cursor: pointer; transition: opacity 0.15s ease, background 0.15s ease; } .ds-btn-primary:hover { opacity: 0.88; } .ds-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined neutral button for secondary actions.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 8px; background: #FFFFFF; color: #1F1B14; border: 1px solid #E7E2D9; border-radius: 10px; padding: 9px 16px; font: 500 13px/1.4 'Instrument Sans', -apple-system, sans-serif; cursor: pointer; transition: opacity 0.15s ease, background 0.15s ease; } .ds-btn-secondary:hover { opacity: 0.88; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Base content surface: hairline border, ambient shadow, paper-white fill.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Interconnection</div><div class=\"ds-card-body\">1.2 miles from nearest substation.</div></div>",
+      "css": ".ds-card { background: #FFFFFF; border: 1px solid #EEEAE2; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(30, 25, 15, 0.06); } .ds-card-title { font: 600 22px/1.25 'Source Serif 4', Georgia, serif; color: #1F1B14; margin-bottom: 6px; } .ds-card-body { font: 400 14px/1.6 'Instrument Sans', -apple-system, sans-serif; color: #4A4437; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labeled text field with helper/error state.",
+      "html": "<label class=\"ds-input-wrap\"><span class=\"ds-input-label\">Address</span><input class=\"ds-input\" placeholder=\"123 County Rd, Madison County, NY\" /></label>",
+      "css": ".ds-input-wrap { display: flex; flex-direction: column; gap: 6px; font-family: 'Instrument Sans', -apple-system, sans-serif; } .ds-input-label { font: 500 13px/1.4 'Instrument Sans', -apple-system, sans-serif; color: #1F1B14; } .ds-input { font: 400 14px/1.6 'Instrument Sans', -apple-system, sans-serif; color: #1F1B14; background: #FFFFFF; border: 1px solid #E7E2D9; border-radius: 10px; padding: 10px 12px; outline: none; } .ds-input:focus { border-color: #DD8018; }"
+    },
+    {
+      "name": "Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Quiet pill-shaped metadata chip, neutral only.",
+      "html": "<span class=\"ds-tag\">Madison County</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font: 500 12px/1.4 'Instrument Sans', -apple-system, sans-serif; color: #6E6656; background: #FFFFFF; border: 1px solid #E7E2D9; }"
+    },
+    {
+      "name": "Dimension Card",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: one screening dimension's verdict, serif status headline colored by tone.",
+      "html": "<div class=\"ds-dim-card\"><div class=\"ds-dim-label\">Environmental</div><div class=\"ds-dim-status ds-dim-status--danger\">Wetland overlap</div><div class=\"ds-dim-detail\">NWI Freshwater Emergent Wetland, SE corner</div></div>",
+      "css": ".ds-dim-card { background: #FFFFFF; border: 1px solid #EEEAE2; border-radius: 10px; padding: 14px; font-family: 'Instrument Sans', -apple-system, sans-serif; } .ds-dim-label { font: 500 12px/1.4 'Instrument Sans', -apple-system, sans-serif; color: #8A8172; } .ds-dim-status { font: 600 17px/1.25 'Source Serif 4', Georgia, serif; margin-top: 4px; } .ds-dim-status--success { color: #3D7A3F; } .ds-dim-status--warning { color: #B4690E; } .ds-dim-status--danger { color: #B23B2E; } .ds-dim-detail { font: 400 13px/1.5 'Instrument Sans', -apple-system, sans-serif; color: #8A8172; margin-top: 2px; }"
+    },
+    {
+      "name": "Verdict Rating",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: the memo's headline score as a serif star rating with a labeled caption.",
+      "html": "<div class=\"ds-verdict\"><div class=\"ds-verdict-stars\"><span class=\"filled\">★</span><span class=\"filled\">★</span><span class=\"filled\">★</span><span class=\"filled\">★</span><span>★</span></div><div class=\"ds-verdict-caption\">Good · 78</div></div>",
+      "css": ".ds-verdict { display: flex; flex-direction: column; align-items: flex-end; font-family: 'Instrument Sans', -apple-system, sans-serif; } .ds-verdict-stars { font: 600 18px/1 'Source Serif 4', Georgia, serif; letter-spacing: 2px; } .ds-verdict-stars .filled { color: #DD8018; } .ds-verdict-stars span:not(.filled) { color: #E7E2D9; } .ds-verdict-caption { font: 500 13px/1.4 'Instrument Sans', -apple-system, sans-serif; color: #9A6A0C; margin-top: 4px; }"
+    },
+    {
+      "name": "Progress Checklist Row",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: one pipeline step in the live-progress list, with done/running/pending icon states.",
+      "html": "<div class=\"ds-progress-row\"><span class=\"ds-progress-icon ds-progress-icon--running\"></span><span>Checking hosting capacity</span></div>",
+      "css": ".ds-progress-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font: 400 14px/1.6 'Instrument Sans', -apple-system, sans-serif; color: #4A4437; } .ds-progress-icon { display: inline-block; width: 10px; height: 10px; } .ds-progress-icon--running { border-radius: 50%; border: 2px solid #5A461F; border-top-color: transparent; animation: ds-spin 0.8s linear infinite; } @keyframes ds-spin { to { transform: rotate(360deg); } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Analyst's Field Notebook",
+    "overview": "Helios reads like a diligence document, not a SaaS dashboard. The base is warm, paper-toned neutrals (stone, not gray) under a serif display face that gives every heading and score the weight of a printed report; body and UI text stay in a clean grotesque sans so the interface itself never competes with the report it's producing. Color is spent narrowly: amber marks the product's own accent and rating scale, and status colors (success green, warning amber, danger red) are reserved strictly for verdicts on the memo's findings — nothing decorative gets tinted. Depth is understated. Cards separate from the page mostly through a warm off-white background and a hairline border; shadow appears only as a soft ambient cue (on the base card, and more visibly on floating elements like the address-autocomplete dropdown), never as a heavy drop shadow implying a stacked UI. The system supports a full dark theme (charcoal base, amber accent brightened for contrast) built from the same semantic token names, not a separate palette.",
+    "keyCharacteristics": [
+      "Warm stone neutrals instead of cool gray — paper, not glass",
+      "Serif display type for headings/scores, sans for body/UI — report voice vs. interface voice",
+      "Color reserved for accent and verdict status only; everything else stays neutral",
+      "Flat, border-led surfaces with restrained ambient shadow, not stacked-card depth",
+      "Full light/dark theme parity via shared semantic tokens"
+    ],
+    "rules": [
+      { "name": "The Verdict-Only Color Rule", "body": "Green/amber/red never appear outside a scoring or status context (DimensionCard tone, ProgressChecklist icons, star rating). If a color is describing severity, it's one of these three; if it's UI chrome, it's neutral or the single amber accent.", "section": "colors" },
+      { "name": "The Serif-For-Verdicts Rule", "body": "Any element stating a scored outcome (star rating, dimension status value) renders in the display serif at semibold, even at small sizes — the report's conclusions always get the serif's authority, never the UI sans.", "section": "typography" },
+      { "name": "The Border-First Rule", "body": "Surface separation is a border's job; shadow only reinforces it, and only escalates to shadow-elevated for elements that are genuinely floating above other content, not merely \"important.\"", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the display serif (Source Serif 4) for anything stating a verdict or conclusion (scores, dimension statuses, headings).",
+      "Do keep status green/amber/red scoped to scoring and pipeline-step outcomes only.",
+      "Do let borders do the primary work of separating surfaces; use shadow-card as a light reinforcement, not the main mechanism.",
+      "Do reach for semantic tokens rather than raw palette values in component code, so dark theme continues to work automatically."
+    ],
+    "donts": [
+      "Don't introduce a second accent color alongside amber — the palette's restraint is load-bearing for the \"field notebook\" character.",
+      "Don't use shadow-elevated for ordinary cards to make them feel \"more important\" — it's reserved for elements genuinely floating above the page.",
+      "Don't mix sharp corners into this system — every shape uses the radius-sm–radius-pill scale; nothing renders with a 0px radius.",
+      "Don't style form inputs with a custom focus ring yet without checking accessibility contrast first — the current default-outline behavior is an acknowledged gap, not a pattern to copy uncritically."
+    ]
+  }
+}

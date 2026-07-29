@@ -11,6 +11,7 @@ export function MapPanel({ url, height = 320 }: { url: string; height?: number }
       <iframe
         src={url}
         title="Site map"
+        loading="lazy"
         style={{ width: "100%", height: "100%", border: "none" }}
       />
     </div>

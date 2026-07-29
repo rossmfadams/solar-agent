@@ -1,16 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Memo } from "./api/types";
 import { Button } from "./components/Button";
 import { MemoDetailScreen } from "./screens/MemoDetailScreen";
 import { NewSiteScreen } from "./screens/NewSiteScreen";
 
+type Theme = "light" | "dark";
+const THEME_STORAGE_KEY = "helios-theme";
+
+function getStoredTheme(): Theme | null {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
+}
+
 function DarkModeToggle() {
-  const [dark, setDark] = useState(false);
+  // `explicit` is the visitor's persisted choice; until they toggle once,
+  // the theme instead tracks the OS `prefers-color-scheme` media query (see colors.css).
+  const [explicit, setExplicit] = useState<Theme | null>(() => getStoredTheme());
+  const [systemDark, setSystemDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (explicit) {
+      document.documentElement.setAttribute("data-theme", explicit);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [explicit]);
+
+  const dark = explicit ? explicit === "dark" : systemDark;
 
   const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
+    const next: Theme = dark ? "light" : "dark";
+    setExplicit(next);
+    localStorage.setItem(THEME_STORAGE_KEY, next);
   };
 
   return (

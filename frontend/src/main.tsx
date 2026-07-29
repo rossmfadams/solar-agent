@@ -6,6 +6,8 @@ import "./tokens/colors.css";
 import "./tokens/typography.css";
 import "./tokens/spacing.css";
 import "./tokens/base.css";
+import "./styles/responsive.css";
+import "./styles/a11y.css";
 
 const queryClient = new QueryClient();
 
