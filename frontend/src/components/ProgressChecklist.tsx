@@ -31,7 +31,7 @@ const LABELS: Record<string, string> = {
 
 const STEP_ORDER = Object.keys(PREDECESSORS);
 
-type StepStatus = "pending" | "running" | NodeEventStatus;
+type StepStatus = "pending" | "running" | "error" | NodeEventStatus;
 
 export interface StepState {
   status: NodeEventStatus;
@@ -44,6 +44,9 @@ function Icon({ status }: { status: StepStatus }) {
   }
   if (status === "warning") {
     return <span style={{ color: "var(--status-warning)" }}>!</span>;
+  }
+  if (status === "error") {
+    return <span style={{ color: "var(--status-danger)" }}>✕</span>;
   }
   if (status === "running") {
     return (
@@ -63,17 +66,30 @@ function Icon({ status }: { status: StepStatus }) {
   return <span style={{ color: "var(--text-muted)" }}>○</span>;
 }
 
-export function ProgressChecklist({ completed }: { completed: Record<string, StepState> }) {
+export function ProgressChecklist({
+  completed,
+  failedNode,
+}: {
+  completed: Record<string, StepState>;
+  failedNode?: string;
+}) {
   const completedOrder = Object.keys(completed);
   const remaining = STEP_ORDER.filter((node) => !completed[node]);
 
-  const activeNode = remaining.find((node) => PREDECESSORS[node].every((p) => completed[p]));
+  const activeNode = failedNode
+    ? undefined
+    : remaining.find((node) => PREDECESSORS[node].every((p) => completed[p]));
   const activeLabel = activeNode ? LABELS[activeNode] : undefined;
+  const failedLabel = failedNode ? LABELS[failedNode] ?? failedNode : undefined;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {activeLabel ? `${activeLabel}…` : "Screening complete"}
+        {failedLabel
+          ? `${failedLabel} failed`
+          : activeLabel
+            ? `${activeLabel}…`
+            : "Screening complete"}
       </span>
       <style>{"@keyframes helios-spin { to { transform: rotate(360deg); } }"}</style>
       <div aria-hidden="true">
@@ -81,7 +97,10 @@ export function ProgressChecklist({ completed }: { completed: Record<string, Ste
           <Row key={node} label={completed[node].label} status={completed[node].status} />
         ))}
         {remaining.map((node) => {
-          const predecessorsDone = PREDECESSORS[node].every((p) => completed[p]);
+          if (node === failedNode) {
+            return <Row key={node} label={LABELS[node]} status="error" />;
+          }
+          const predecessorsDone = !failedNode && PREDECESSORS[node].every((p) => completed[p]);
           return (
             <Row
               key={node}
