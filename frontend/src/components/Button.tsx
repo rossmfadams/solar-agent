@@ -7,7 +7,7 @@ const VARIANTS: Record<Variant, CSSProperties> = {
   primary: { background: "var(--accent)", color: "var(--text-on-accent)", border: "1px solid var(--accent)" },
   secondary: { background: "var(--surface-card)", color: "var(--text-primary)", border: "1px solid var(--border-subtle)" },
   ghost: { background: "transparent", color: "var(--text-primary)", border: "1px solid transparent" },
-  danger: { background: "var(--status-danger)", color: "#fff", border: "1px solid var(--status-danger)" },
+  danger: { background: "var(--status-danger)", color: "var(--text-on-danger)", border: "1px solid var(--status-danger)" },
 };
 
 const SIZES: Record<Size, CSSProperties> = {
@@ -41,7 +41,7 @@ export function Button({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: "var(--space-2)",
         borderRadius: "var(--radius-md)",
         cursor: disabled ? "not-allowed" : "pointer",
         transition: "opacity 0.15s ease, background 0.15s ease",

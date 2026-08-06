@@ -49,6 +49,26 @@
   }
 }
 
+/* Dark mode toggle: floats over the top-right corner on desktop, where it
+   never competes with content. Below 640px that same corner is where page
+   titles and back-navigation live (see NewSiteScreen/MemoDetailScreen), so
+   the toggle drops out of fixed overlay and docks as a static bar above the
+   content instead. */
+.theme-toggle-wrap {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 10;
+}
+@media (max-width: 640px) {
+  .theme-toggle-wrap {
+    position: static;
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-3) clamp(16px, 5vw, 28px) 0;
+  }
+}
+
 /* Touch targets: every interactive control gets a real 44x44 hit area,
    independent of its visual (padding-driven) size. */
 .tap-target {

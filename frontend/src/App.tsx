@@ -44,7 +44,7 @@ function DarkModeToggle() {
   };
 
   return (
-    <div style={{ position: "fixed", top: 16, right: 16 }}>
+    <div className="theme-toggle-wrap">
       <Button variant="ghost" size="sm" onClick={toggle}>
         {dark ? "Light mode" : "Dark mode"}
       </Button>
@@ -56,7 +56,7 @@ export default function App() {
   const [memo, setMemo] = useState<Memo | null>(null);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "var(--bg-page)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)" }}>
       <DarkModeToggle />
       {memo ? (
         <MemoDetailScreen memo={memo} onBack={() => setMemo(null)} />
