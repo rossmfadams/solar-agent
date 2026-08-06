@@ -51,7 +51,7 @@
   --text-secondary: var(--stone-800);
   --text-tertiary: var(--stone-500);
   --text-muted: var(--stone-450);
-  --text-on-accent: #FFFFFF;
+  --text-on-accent: var(--stone-900);
   --text-on-danger: #FFFFFF;
 
   --accent: var(--amber-500);

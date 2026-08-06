@@ -119,19 +119,21 @@ export function AddressAutocomplete({
           }}
         >
           {suggestions.map((s, i) => (
-            <button
+            <div
               key={`${s.label}-${s.lat}-${s.lng}`}
               id={`address-option-${i}`}
               role="option"
               aria-selected={highlighted === i}
-              type="button"
+              tabIndex={-1}
               className="tap-target-block"
               onMouseEnter={() => setHighlighted(i)}
-              onClick={() => selectSuggestion(s)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectSuggestion(s);
+              }}
               style={{
                 textAlign: "left",
                 background: highlighted === i ? "var(--surface-accent-soft)" : "transparent",
-                border: "none",
                 padding: "8px 12px",
                 cursor: "pointer",
                 font: "var(--text-body-md)",
@@ -139,7 +141,7 @@ export function AddressAutocomplete({
               }}
             >
               {s.label}
-            </button>
+            </div>
           ))}
         </div>
       )}
