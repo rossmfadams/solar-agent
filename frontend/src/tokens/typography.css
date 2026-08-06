@@ -1,6 +1,6 @@
 :root {
   --font-display: 'Source Serif 4', Georgia, serif;
-  --font-ui: 'Instrument Sans', -apple-system, sans-serif;
+  --font-ui: 'Public Sans', -apple-system, sans-serif;
 
   --text-display-lg: 600 40px/1.15 var(--font-display);
   --text-display-md: 600 28px/1.2 var(--font-display);
