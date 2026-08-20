@@ -41,32 +41,32 @@ typography:
     fontWeight: 600
     lineHeight: 1.3
   body-lg:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.6
   body-md:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.6
   body-sm:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.5
   label-md:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "13px"
     fontWeight: 500
     lineHeight: 1.4
   label-sm:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     lineHeight: 1.4
   eyebrow:
-    fontFamily: "'Instrument Sans', -apple-system, sans-serif"
+    fontFamily: "'Public Sans', -apple-system, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     lineHeight: 1.3
@@ -154,7 +154,7 @@ Warm, editorial-neutral palette (stone base) with a single amber accent and thre
 ## Typography
 
 **Display Font:** Source Serif 4 (with Georgia, serif fallback)
-**Body/UI Font:** Instrument Sans (with -apple-system, sans-serif fallback)
+**Body/UI Font:** Public Sans (with -apple-system, sans-serif fallback)
 
 **Character:** A serif/sans pairing that reads as "printed report rendered in a modern interface" — the serif carries authority and weight on headings and scores, the grotesque sans stays quiet and efficient everywhere information density matters (labels, body copy, buttons, tabs).
 
@@ -163,12 +163,12 @@ Warm, editorial-neutral palette (stone base) with a single amber accent and thre
 - **Display md** (600, 28px/1.2, Source Serif 4): section/memo headings.
 - **Display sm** (600, 22px/1.25, Source Serif 4): card-level titles, dimension status values.
 - **Display xs** (600, 17px/1.3, Source Serif 4): compact serif emphasis (e.g. star rating at `sm` size).
-- **Body lg** (400, 16px/1.6, Instrument Sans): primary reading copy.
-- **Body md** (400, 14px/1.6, Instrument Sans): default UI/body text; the page default.
-- **Body sm** (400, 13px/1.5, Instrument Sans): secondary/helper text, dimension detail lines.
-- **Label md** (500, 13px/1.4, Instrument Sans): form labels, tab labels, buttons (md).
-- **Label sm** (500, 12px/1.4, Instrument Sans): tags, compact buttons, verdict caption.
-- **Eyebrow** (500, 12px/1.3, 0.06em tracking, Instrument Sans): not yet used in a shipped component but reserved for section kickers.
+- **Body lg** (400, 16px/1.6, Public Sans): primary reading copy.
+- **Body md** (400, 14px/1.6, Public Sans): default UI/body text; the page default.
+- **Body sm** (400, 13px/1.5, Public Sans): secondary/helper text, dimension detail lines.
+- **Label md** (500, 13px/1.4, Public Sans): form labels, tab labels, buttons (md).
+- **Label sm** (500, 12px/1.4, Public Sans): tags, compact buttons, verdict caption.
+- **Eyebrow** (500, 12px/1.3, 0.06em tracking, Public Sans): not yet used in a shipped component but reserved for section kickers.
 
 ### Named Rules
 **The Serif-For-Verdicts Rule.** Any element stating a scored outcome (star rating, dimension status value) renders in the display serif at semibold, even at small sizes — the report's conclusions always get the serif's authority, never the UI sans.

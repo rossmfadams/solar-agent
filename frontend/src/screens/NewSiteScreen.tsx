@@ -14,6 +14,7 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, StepState>>({});
+  const [failedNode, setFailedNode] = useState<string | null>(null);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>(() => getRecentRuns());
   const queryClient = useQueryClient();
 
@@ -22,6 +23,7 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
 
     setError(null);
     setSteps({});
+    setFailedNode(null);
     setRunning(true);
 
     try {
@@ -33,6 +35,7 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
           }));
         } else if (event.type === "error") {
           setError(event.message);
+          setFailedNode(event.node);
           setRunning(false);
         } else if (event.type === "memo") {
           const score = isVerified(event.memo.viability) ? event.memo.viability.score : null;
@@ -82,9 +85,9 @@ export function NewSiteScreen({ onComplete }: { onComplete: (memo: Memo) => void
             </Button>
           </div>
         </Card>
-        {running && (
+        {(running || (failedNode && Object.keys(steps).length > 0)) && (
           <Card style={{ marginTop: 16 }}>
-            <ProgressChecklist completed={steps} />
+            <ProgressChecklist completed={steps} failedNode={failedNode ?? undefined} />
           </Card>
         )}
         {!running && recentRuns.length > 0 && (

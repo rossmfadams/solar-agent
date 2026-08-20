@@ -1,8 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
-
 :root {
   --font-display: 'Source Serif 4', Georgia, serif;
-  --font-ui: 'Instrument Sans', -apple-system, sans-serif;
+  --font-ui: 'Public Sans', -apple-system, sans-serif;
 
   --text-display-lg: 600 40px/1.15 var(--font-display);
   --text-display-md: 600 28px/1.2 var(--font-display);

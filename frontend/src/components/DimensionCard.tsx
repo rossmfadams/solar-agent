@@ -23,7 +23,7 @@ export function DimensionCard({
         background: "var(--surface-card)",
         border: "1px solid var(--border-default)",
         borderRadius: "var(--radius-md)",
-        padding: 14,
+        padding: "var(--space-4)",
         fontFamily: "var(--font-ui)",
       }}
     >

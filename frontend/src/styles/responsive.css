@@ -78,7 +78,8 @@
   justify-content: center;
 }
 
-button.tap-target-block {
+button.tap-target-block,
+div.tap-target-block {
   min-height: 44px;
   width: 100%;
   display: flex;
