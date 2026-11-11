@@ -2,15 +2,15 @@
 
 > AI agent for early-stage site diligence on utility-scale solar projects in New York State.
 
-Given an address or coordinates, Helios produces a structured **viability memo** — covering siting constraints, interconnection availability, and permitting feasibility — in under 90 seconds. Work that typically takes a junior analyst 30–60 minutes per site.
+Given an address or coordinates, Helios produces a structured **viability memo** — covering siting constraints, interconnection availability, and permitting feasibility — targeting under 90 seconds per site, for work that typically takes a junior analyst 30–60 minutes.
 
 ## Status
 
-Under active development. See [`docs/01_helios_prd.md`](docs/01_helios_prd.md) for the full product spec.
+Live at [helios.rossadams.dev](https://helios.rossadams.dev). The server scales to zero when idle, so the first page load may take a few seconds while it wakes up.
 
 ## What it does
 
-1. Geocodes the input and resolves it to a NY parcel polygon
+1. Geocodes the input (OpenStreetMap Nominatim) and resolves it to a NY parcel polygon, falling back to a 500 m buffer when no parcel matches
 2. Checks proximity to transmission lines and substations (HIFLD)
 3. Estimates interconnection congestion from the NYISO queue
 4. Flags environmental constraints — flood zones (FEMA), wetlands (NWI), protected lands (PAD-US)
@@ -20,11 +20,11 @@ Under active development. See [`docs/01_helios_prd.md`](docs/01_helios_prd.md) f
 
 ## Tech stack
 
-- **Backend:** FastAPI + Python 3.11+, PostgreSQL 16 + PostGIS
+- **Backend:** FastAPI + Python 3.14, PostgreSQL 16 + PostGIS
 - **Agent:** LangGraph state graph
-- **LLM:** Anthropic Claude (Sonnet for reasoning, Haiku for classification)
-- **Frontend:** Server-rendered HTML + Folium maps
-- **Infra:** Docker, deployable to Fly.io or Render
+- **LLM:** Anthropic Claude Sonnet 4.6, for ordinance research (server-side web search) and memo synthesis
+- **Frontend:** React + Vite + TypeScript SPA served by FastAPI, with the Folium map embedded via iframe and Mapbox address autocomplete
+- **Infra:** Single Docker image on Fly.io, scale-to-zero
 
 ## Docs
 
